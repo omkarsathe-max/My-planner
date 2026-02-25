@@ -10,24 +10,40 @@
         .cube-checkbox { width: 22px; height: 22px; border: 2px solid #475569; cursor: pointer; position: relative; flex-shrink: 0; }
         .cube-checkbox.checked { background-color: #10b981; border-color: #10b981; }
         .cube-checkbox.checked::after { content: '✔'; color: white; position: absolute; top: -2px; left: 3px; font-size: 14px; }
-        .calendar-day { min-height: 50px; background: #1e293b; cursor: pointer; border: 2px solid transparent; border-radius: 8px; }
+        .calendar-day { min-height: 55px; background: #1e293b; cursor: pointer; border: 2px solid transparent; border-radius: 8px; position: relative; }
         .calendar-day.active { border-color: #3b82f6; background: #0f172a; }
         .calendar-day.today { border: 1px solid #3b82f6; font-weight: bold; }
+        .dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; position: absolute; bottom: 8px; }
         .sub-task-container { margin-left: 28px; border-left: 2px solid #334155; padding-left: 12px; margin-top: 8px; }
+        .progress-bar { height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #10b981; transition: width 0.3s ease; }
     </style>
 </head>
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
+        <div class="bg-gradient-to-r from-red-900 to-slate-900 p-3 rounded-lg mb-4 border border-red-800 shadow-lg text-center">
+            <p class="text-[10px] font-black tracking-widest text-red-400 uppercase">CA Foundation Countdown</p>
+            <h2 id="countdownDisplay" class="text-xl font-bold text-white">Calculating...</h2>
+        </div>
+
         <header class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
             <h1 class="text-2xl font-bold italic tracking-tighter">OPPA <span class="text-blue-500 text-xs border border-blue-500 px-1 rounded not-italic uppercase">Elite</span></h1>
             <button onclick="addTask()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-lg">+ NEW TASK</button>
         </header>
 
+        <div class="bg-slate-900 p-4 rounded-xl mb-6 border border-slate-800 shadow-xl">
+            <div class="flex justify-between items-end mb-2">
+                <p class="text-xs font-bold text-slate-400 uppercase">Weekly Efficiency</p>
+                <p id="statsText" class="text-xs font-bold text-blue-400">0/0 Tasks</p>
+            </div>
+            <div class="progress-bar"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
+        </div>
+
         <div class="bg-slate-900 p-4 rounded-xl mb-6 shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center mb-4">
-                <button onclick="changeMonth(-1)" class="p-2 text-slate-400 font-bold">◀</button>
-                <div id="monthLabel" class="font-bold text-lg text-slate-200 uppercase tracking-widest">MARCH 2026</div>
-                <button onclick="changeMonth(1)" class="p-2 text-slate-400 font-bold">▶</button>
+                <button onclick="changeMonth(-1)" class="p-2 text-slate-400 font-bold text-xl">◀</button>
+                <div id="monthLabel" class="font-bold text-lg text-slate-200 uppercase tracking-widest"></div>
+                <button onclick="changeMonth(1)" class="p-2 text-slate-400 font-bold text-xl">▶</button>
             </div>
             <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 font-black mb-2">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
@@ -40,15 +56,11 @@
             <div id="taskList" class="space-y-6"></div>
         </div>
 
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 opacity-60">
-            <p class="text-[10px] font-bold text-slate-500 uppercase mb-3">System Backup</p>
-            <div class="flex gap-2">
-                <button onclick="downloadBackup()" class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold hover:bg-slate-700">💾 DOWNLOAD DATA</button>
-                <label class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold hover:bg-slate-700 text-center cursor-pointer">
-                    📂 RESTORE
-                    <input type="file" class="hidden" onchange="restoreBackup(event)">
-                </label>
-            </div>
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 opacity-60 flex gap-2">
+            <button onclick="downloadBackup()" class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold">💾 DOWNLOAD</button>
+            <label class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold text-center cursor-pointer">
+                📂 RESTORE <input type="file" class="hidden" onchange="restoreBackup(event)">
+            </label>
         </div>
     </div>
 
@@ -56,6 +68,36 @@
         let tasks = JSON.parse(localStorage.getItem('oppa_tasks')) || {};
         let currentViewDate = new Date();
         let selectedDate = new Date().toISOString().split('T')[0];
+
+        // SET YOUR EXAM DATE HERE (YYYY, Month Index (0-11), Day)
+        const EXAM_DATE = new Date(2026, 5, 20); // Example: June 20, 2026
+
+        function updateCountdown() {
+            const now = new Date();
+            const diff = EXAM_DATE - now;
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            document.getElementById('countdownDisplay').innerText = days > 0 ? `${days} DAYS LEFT` : "EXAM DAY!";
+        }
+
+        function updateProgress() {
+            let done = 0, total = 0;
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            
+            for (let i = 0; i < 7; i++) {
+                const dateStr = new Date(startOfWeek).toISOString().split('T')[0];
+                if (tasks[dateStr]) {
+                    tasks[dateStr].forEach(t => {
+                        total++; if(t.done) done++;
+                        t.subs.forEach(s => { total++; if(s.done) done++; });
+                    });
+                }
+                startOfWeek.setDate(startOfWeek.getDate() + 1);
+            }
+            const percent = total === 0 ? 0 : (done / total) * 100;
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('statsText').innerText = `${done}/${total} COMPLETED`;
+        }
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
@@ -73,6 +115,9 @@
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 day.className = `calendar-day flex items-center justify-center ${selectedDate === dateStr ? 'active' : ''} ${isToday ? 'today' : ''}`;
                 day.innerHTML = `<span class="text-xs">${i}</span>`;
+                if (tasks[dateStr] && tasks[dateStr].some(t => !t.done)) {
+                    const dot = document.createElement('div'); dot.className = 'dot'; day.appendChild(dot);
+                }
                 day.onclick = () => { selectedDate = dateStr; renderCalendar(); renderTasks(); };
                 grid.appendChild(day);
             }
@@ -88,55 +133,44 @@
             if (dayTasks.length === 0) list.innerHTML = '<p class="text-slate-700 text-xs italic text-center py-4">No tasks found.</p>';
             dayTasks.forEach((task, tIdx) => {
                 const taskDiv = document.createElement('div');
-                let subTasksHtml = task.subs.map((s, sIdx) => `
+                let subHtml = task.subs.map((s, sIdx) => `
                     <div class="flex items-center gap-3 mb-2">
                         <div class="cube-checkbox scale-75 ${s.done ? 'checked' : ''}" onclick="toggleSub(${tIdx}, ${sIdx})"></div>
                         <p class="text-xs ${s.done ? 'line-through text-slate-500' : 'text-slate-400'}">${s.text}</p>
                     </div>
                 `).join('');
-                taskDiv.innerHTML = `
-                    <div class="p-3 bg-slate-800 rounded-lg border-l-4 border-blue-600">
-                        <div class="flex items-start gap-3">
-                            <div class="cube-checkbox ${task.done ? 'checked' : ''}" onclick="toggleMain(${tIdx})"></div>
-                            <div class="flex-grow">
-                                <p class="text-sm font-bold ${task.done ? 'line-through text-slate-600' : 'text-slate-200'}">${task.text}</p>
-                                <div class="sub-task-container">${subTasksHtml}</div>
-                                <button onclick="addSub(${tIdx})" class="text-[10px] text-blue-500 font-bold mt-2 hover:underline">+ ADD STEP</button>
-                            </div>
-                            <button onclick="deleteTask(${tIdx})" class="text-slate-600 text-xs">X</button>
+                taskDiv.innerHTML = `<div class="p-3 bg-slate-800 rounded-lg border-l-4 border-blue-600 shadow-md">
+                    <div class="flex items-start gap-3">
+                        <div class="cube-checkbox ${task.done ? 'checked' : ''}" onclick="toggleMain(${tIdx})"></div>
+                        <div class="flex-grow">
+                            <p class="text-sm font-bold ${task.done ? 'line-through text-slate-600' : 'text-slate-100'}">${task.text}</p>
+                            <div class="sub-task-container">${subHtml}</div>
+                            <button onclick="addSub(${tIdx})" class="text-[10px] text-blue-500 font-bold mt-2">+ STEP</button>
                         </div>
+                        <button onclick="deleteTask(${tIdx})" class="text-slate-600 text-xs">X</button>
                     </div>
-                `;
+                </div>`;
                 list.appendChild(taskDiv);
             });
+            updateProgress();
         }
 
         function addTask() {
-            const val = prompt("Main Task:");
-            if (val) { if (!tasks[selectedDate]) tasks[selectedDate] = []; tasks[selectedDate].push({ text: val, done: false, subs: [] }); save(); }
+            const val = prompt("Task:");
+            if (val) { if (!tasks[selectedDate]) tasks[selectedDate] = []; tasks[selectedDate].push({ text: val, done: false, subs: [] }); save(); renderCalendar(); }
         }
         function addSub(tIdx) {
-            const val = prompt("Sub-step:");
+            const val = prompt("Step:");
             if (val) { tasks[selectedDate][tIdx].subs.push({ text: val, done: false }); save(); }
         }
-        function toggleMain(tIdx) { tasks[selectedDate][tIdx].done = !tasks[selectedDate][tIdx].done; save(); }
+        function toggleMain(tIdx) { tasks[selectedDate][tIdx].done = !tasks[selectedDate][tIdx].done; save(); renderCalendar(); }
         function toggleSub(tIdx, sIdx) { tasks[selectedDate][tIdx].subs[sIdx].done = !tasks[selectedDate][tIdx].subs[sIdx].done; save(); }
-        function deleteTask(tIdx) { if(confirm("Delete?")) { tasks[selectedDate].splice(tIdx, 1); save(); } }
+        function deleteTask(tIdx) { if(confirm("Delete?")) { tasks[selectedDate].splice(tIdx, 1); save(); renderCalendar(); } }
         function save() { localStorage.setItem('oppa_tasks', JSON.stringify(tasks)); renderTasks(); }
+        function downloadBackup() { const blob = new Blob([JSON.stringify(tasks)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `oppa_backup.json`; a.click(); }
+        function restoreBackup(event) { const reader = new FileReader(); reader.onload = (e) => { tasks = JSON.parse(e.target.result); save(); renderCalendar(); }; reader.readAsText(event.target.files[0]); }
 
-        function downloadBackup() {
-            const blob = new Blob([JSON.stringify(tasks)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `oppa_backup_${selectedDate}.json`; a.click();
-        }
-
-        function restoreBackup(event) {
-            const reader = new FileReader();
-            reader.onload = (e) => { tasks = JSON.parse(e.target.result); save(); location.reload(); };
-            reader.readAsText(event.target.files[0]);
-        }
-
+        updateCountdown();
         renderCalendar();
         renderTasks();
     </script>
