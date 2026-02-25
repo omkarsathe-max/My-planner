@@ -3,197 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oppa | Elite Tasker</title>
+    <title>Oppa | Elite Hub</title>
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
-        .cube-checkbox { width: 22px; height: 22px; border: 2px solid #475569; cursor: pointer; position: relative; flex-shrink: 0; }
-        .cube-checkbox.checked { background-color: #10b981; border-color: #10b981; }
-        .cube-checkbox.checked::after { content: '✔'; color: white; position: absolute; top: -2px; left: 3px; font-size: 14px; }
-        .calendar-day { min-height: 55px; background: #1e293b; cursor: pointer; border: 2px solid transparent; border-radius: 8px; position: relative; }
-        .calendar-day.active { border-color: #3b82f6; background: #0f172a; }
-        .calendar-day.today { border: 1px solid #3b82f6; font-weight: bold; }
-        .dot { width: 6px; height: 6px; background-color: #3b82f6; border-radius: 50%; position: absolute; bottom: 8px; }
-        .sub-task-container { margin-left: 28px; border-left: 2px solid #334155; padding-left: 12px; margin-top: 8px; }
-        .progress-bar { height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #10b981; transition: width 0.3s ease; }
-        input[type="text"] { background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 4px 8px; border-radius: 4px; width: 100%; font-size: 14px; }
-        input[type="text"]:focus { outline: none; border-color: #3b82f6; }
+        body { transition: background-color 0.3s; -webkit-tap-highlight-color: transparent; font-family: sans-serif; }
+        .dark body { background-color: #0f172a; color: #e2e8f0; }
+        body:not(.dark) { background-color: #f8fafc; color: #1e293b; }
+        .bg-card { background-color: white; border: 1px solid #e2e8f0; }
+        .dark .bg-card { background-color: #1e293b; border-color: #334155; }
+        .cube-checkbox { width: 20px; height: 20px; border: 2px solid #64748b; cursor: pointer; border-radius: 4px; }
+        .checked { background-color: #10b981; border-color: #10b981; }
+        .checked::after { content: '✔'; color: white; position: absolute; left: 3px; top: -2px; font-size: 12px; }
+        .nav-btn { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; opacity: 0.5; }
+        .nav-btn.active { opacity: 1; color: #3b82f6; }
+        .calendar-day { min-height: 45px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid transparent; }
+        .active-day { border: 2px solid #3b82f6 !important; }
+        .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
+        input, textarea { width: 100%; background: transparent; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; outline: none; }
+        .dark input, .dark textarea { border-color: #334155; color: white; }
     </style>
 </head>
-<body class="p-4 pb-24">
+<body class="p-4 pb-24 dark">
     <div class="max-w-md mx-auto">
-        <div class="bg-gradient-to-r from-red-900 to-slate-900 p-3 rounded-lg mb-4 border border-red-800 shadow-lg text-center">
-            <p class="text-[10px] font-black tracking-widest text-red-400 uppercase">CA Foundation Countdown</p>
-            <h2 id="countdownDisplay" class="text-xl font-bold text-white tracking-tight">79 DAYS LEFT</h2>
-        </div>
-
-        <header class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-            <h1 class="text-2xl font-bold italic tracking-tighter">OPPA <span class="text-blue-500 text-xs border border-blue-500 px-1 rounded not-italic uppercase">Elite</span></h1>
+        <header class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold italic">OPPA <span class="text-blue-500">ELITE</span></h1>
+            <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800" id="themeBtn">🌙</button>
         </header>
 
-        <div class="bg-slate-900 p-4 rounded-xl mb-6 border border-slate-800 shadow-xl">
-            <div class="flex justify-between items-end mb-2">
-                <p class="text-xs font-bold text-slate-400 uppercase">Weekly Efficiency</p>
-                <p id="statsText" class="text-xs font-bold text-blue-400">0/0 Tasks</p>
-            </div>
-            <div class="progress-bar"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
+        <div id="pinnedSection" class="bg-gradient-to-r from-blue-600 to-indigo-700 p-3 rounded-lg mb-6 text-white text-center shadow-lg hidden">
+            <p id="pinnedText" class="text-sm font-medium italic"></p>
         </div>
 
-        <div class="bg-slate-900 p-4 rounded-xl mb-6 shadow-2xl border border-slate-800">
-            <div class="flex justify-between items-center mb-4">
-                <button onclick="changeMonth(-1)" class="p-2 text-slate-400 font-bold text-xl">◀</button>
-                <div id="monthLabel" class="font-bold text-lg text-slate-200 uppercase tracking-widest text-center"></div>
-                <button onclick="changeMonth(1)" class="p-2 text-slate-400 font-bold text-xl">▶</button>
+        <div class="bg-card p-3 rounded-xl mb-6 shadow-md">
+            <div class="flex justify-between items-center mb-2">
+                <button onclick="changeMonth(-1)">◀</button>
+                <div id="monthLabel" class="font-bold text-sm uppercase"></div>
+                <button onclick="changeMonth(1)">▶</button>
             </div>
-            <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 font-black mb-2">
+            <div class="grid grid-cols-7 gap-1 text-[8px] text-center font-bold opacity-50 mb-1">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
         </div>
 
-        <div class="bg-slate-900 p-5 rounded-xl shadow-2xl border border-slate-800 mb-6">
-            <h2 id="viewDate" class="text-sm font-black mb-4 text-blue-500 uppercase tracking-tighter">Selected Date</h2>
-            
-            <div class="mb-6">
-                <input type="text" id="mainTaskInput" placeholder="+ Add Main Goal (Press Enter)" onkeypress="handleMainKey(event)">
+        <div id="content" class="bg-card p-4 rounded-xl shadow-lg min-height-[300px]">
+            <h2 id="viewTitle" class="text-xs font-black text-blue-500 uppercase mb-4">Tasks</h2>
+            <div id="screen-tasks" class="space-y-4">
+                <input type="text" id="taskIn" placeholder="+ Add Task (Enter)" onkeypress="handleKey(event, 'task')" class="mb-4">
+                <div id="taskList" class="space-y-4"></div>
             </div>
-
-            <div id="taskList" class="space-y-6"></div>
+            <div id="screen-countdown" class="hidden space-y-4">
+                <input type="text" id="cdName" placeholder="Exam Name (e.g. CA Law)" class="mb-2">
+                <input type="date" id="cdDate" class="mb-2">
+                <button onclick="addCD()" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-xs">ADD COUNTDOWN</button>
+                <div id="cdList" class="space-y-2 mt-4"></div>
+            </div>
+            <div id="screen-events" class="hidden space-y-4">
+                <input type="text" id="evIn" placeholder="+ New Event (Enter)" onkeypress="handleKey(event, 'event')">
+                <div id="evList" class="space-y-2"></div>
+            </div>
+            <div id="screen-diary" class="hidden space-y-4">
+                <textarea id="diaryIn" rows="5" placeholder="Write your thoughts or a motivation quote..." class="mb-2"></textarea>
+                <button onclick="pinQuote()" class="w-full bg-indigo-600 text-white py-2 rounded font-bold text-xs uppercase">Pin to Home Page</button>
+                <div id="diaryList" class="text-xs opacity-70 mt-4 italic"></div>
+            </div>
         </div>
 
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 opacity-60 flex gap-2">
-            <button onclick="downloadBackup()" class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold hover:bg-slate-700 uppercase">💾 Download</button>
-            <label class="flex-1 bg-slate-800 text-[10px] py-2 rounded font-bold text-center cursor-pointer hover:bg-slate-700 uppercase">
-                📂 Restore <input type="file" class="hidden" onchange="restoreBackup(event)">
-            </label>
-        </div>
+        <nav class="fixed bottom-0 left-0 right-0 bg-card border-t border-slate-200 dark:border-slate-800 flex justify-around shadow-2xl p-1">
+            <button onclick="showScreen('tasks')" class="nav-btn active" id="btn-tasks"><span>📋</span>Tasks</button>
+            <button onclick="showScreen('countdown')" class="nav-btn" id="btn-countdown"><span>⏳</span>Exams</button>
+            <button onclick="showScreen('events')" class="nav-btn" id="btn-events"><span>📅</span>Events</button>
+            <button onclick="showScreen('diary')" class="nav-btn" id="btn-diary"><span>📔</span>Diary</button>
+        </nav>
     </div>
 
     <script>
-        let tasks = JSON.parse(localStorage.getItem('oppa_tasks')) || {};
-        let currentViewDate = new Date();
-        let selectedDate = new Date().toISOString().split('T')[0];
-        const EXAM_DATE = new Date(2026, 4, 15);
+        let db = JSON.parse(localStorage.getItem('oppa_db')) || { tasks: {}, exams: [], events: {}, diary: "" };
+        let curDate = new Date();
+        let selDate = new Date().toISOString().split('T')[0];
 
-        function updateCountdown() {
-            const now = new Date();
-            const diff = EXAM_DATE - now;
-            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            document.getElementById('countdownDisplay').innerText = days > 0 ? `${days} DAYS LEFT` : "EXAM DAY!";
-        }
-
-        function updateProgress() {
-            let done = 0, total = 0;
-            const now = new Date();
-            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-            for (let i = 0; i < 7; i++) {
-                const dateStr = new Date(startOfWeek).toISOString().split('T')[0];
-                if (tasks[dateStr]) {
-                    tasks[dateStr].forEach(t => {
-                        total++; if(t.done) done++;
-                        t.subs.forEach(s => { total++; if(s.done) done++; });
-                    });
-                }
-                startOfWeek.setDate(startOfWeek.getDate() + 1);
-            }
-            const percent = total === 0 ? 0 : (done / total) * 100;
-            document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('statsText').innerText = `${done}/${total} COMPLETED`;
+        function showScreen(s) {
+            ['tasks', 'countdown', 'events', 'diary'].forEach(id => {
+                document.getElementById('screen-'+id).classList.add('hidden');
+                document.getElementById('btn-'+id).classList.remove('active');
+            });
+            document.getElementById('screen-'+s).classList.remove('hidden');
+            document.getElementById('btn-'+s).classList.add('active');
+            document.getElementById('viewTitle').innerText = s;
+            if(s === 'tasks' || s === 'events') renderData();
+            if(s === 'countdown') renderCD();
         }
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
-            const label = document.getElementById('monthLabel');
             grid.innerHTML = '';
-            const year = currentViewDate.getFullYear();
-            const month = currentViewDate.getMonth();
-            label.innerText = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentViewDate).toUpperCase();
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
-            for (let i = 1; i <= daysInMonth; i++) {
-                const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-                const day = document.createElement('div');
-                const isToday = new Date().toISOString().split('T')[0] === dateStr;
-                day.className = `calendar-day flex items-center justify-center ${selectedDate === dateStr ? 'active' : ''} ${isToday ? 'today' : ''}`;
-                day.innerHTML = `<span class="text-xs">${i}</span>`;
-                if (tasks[dateStr] && tasks[dateStr].some(t => !t.done)) {
-                    const dot = document.createElement('div'); dot.className = 'dot'; day.appendChild(dot);
+            const y = curDate.getFullYear(), m = curDate.getMonth();
+            document.getElementById('monthLabel').innerText = new Intl.DateTimeFormat('en-US', {month:'long', year:'numeric'}).format(curDate);
+            const start = new Date(y, m, 1).getDay(), days = new Date(y, m+1, 0).getDate();
+            for(let i=0; i<start; i++) grid.appendChild(document.createElement('div'));
+            for(let i=1; i<=days; i++) {
+                const dStr = `${y}-${(m+1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                const d = document.createElement('div');
+                d.className = `calendar-day ${selDate === dStr ? 'active-day' : ''}`;
+                d.innerHTML = `<span>${i}</span>`;
+                if(db.tasks[dStr] && db.tasks[dStr].some(t => !t.done)) {
+                    const dot = document.createElement('div'); dot.className = 'dot'; d.appendChild(dot);
                 }
-                day.onclick = () => { selectedDate = dateStr; renderCalendar(); renderTasks(); };
-                grid.appendChild(day);
+                d.onclick = () => { selDate = dStr; renderCalendar(); renderData(); };
+                grid.appendChild(d);
             }
         }
 
-        function changeMonth(offset) { currentViewDate.setMonth(currentViewDate.getMonth() + offset); renderCalendar(); }
-
-        function renderTasks() {
-            const list = document.getElementById('taskList');
-            document.getElementById('viewDate').innerText = selectedDate;
-            list.innerHTML = '';
-            const dayTasks = tasks[selectedDate] || [];
-            
-            dayTasks.forEach((task, tIdx) => {
-                const taskDiv = document.createElement('div');
-                let subHtml = task.subs.map((s, sIdx) => `
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="cube-checkbox scale-75 ${s.done ? 'checked' : ''}" onclick="toggleSub(${tIdx}, ${sIdx})"></div>
-                        <p class="text-xs ${s.done ? 'line-through text-slate-500' : 'text-slate-400'}">${s.text}</p>
-                    </div>
-                `).join('');
-                
-                taskDiv.innerHTML = `<div class="p-3 bg-slate-800 rounded-lg border-l-4 border-blue-600 shadow-md">
-                    <div class="flex items-start gap-3">
-                        <div class="cube-checkbox ${task.done ? 'checked' : ''}" onclick="toggleMain(${tIdx})"></div>
-                        <div class="flex-grow">
-                            <p class="text-sm font-bold ${task.done ? 'line-through text-slate-600' : 'text-slate-100'}">${task.text}</p>
-                            <div class="sub-task-container">
-                                ${subHtml}
-                                <div class="mt-2">
-                                    <input type="text" class="sub-input" placeholder="+ Add Step" onkeypress="handleSubKey(event, ${tIdx})">
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="deleteTask(${tIdx})" class="text-slate-600 text-xs">X</button>
-                    </div>
+        function renderData() {
+            const tList = document.getElementById('taskList'), eList = document.getElementById('evList');
+            tList.innerHTML = ''; eList.innerHTML = '';
+            (db.tasks[selDate] || []).forEach((t, i) => {
+                tList.innerHTML += `<div class="flex items-start gap-3 p-2 bg-slate-100 dark:bg-slate-800 rounded">
+                    <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
+                    <p class="text-sm ${t.done?'line-through opacity-50':''}">${t.text}</p>
                 </div>`;
-                list.appendChild(taskDiv);
             });
-            updateProgress();
+            (db.events[selDate] || []).forEach((e, i) => {
+                eList.innerHTML += `<div class="p-2 border-l-4 border-blue-500 bg-slate-100 dark:bg-slate-800 text-xs">${e}</div>`;
+            });
         }
 
-        function handleMainKey(e) {
-            if (e.key === 'Enter') {
-                const val = e.target.value;
-                if (!val) return;
-                if (!tasks[selectedDate]) tasks[selectedDate] = [];
-                tasks[selectedDate].push({ text: val, done: false, subs: [] });
-                e.target.value = '';
-                save(); renderCalendar();
+        function renderCD() {
+            const list = document.getElementById('cdList'); list.innerHTML = '';
+            db.exams.forEach((ex, i) => {
+                const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
+                list.innerHTML += `<div class="flex justify-between p-3 bg-red-900/20 border border-red-900/30 rounded text-xs">
+                    <span class="font-bold">${ex.name}</span>
+                    <span class="text-red-500 font-black">${diff} DAYS LEFT</span>
+                </div>`;
+            });
+        }
+
+        function handleKey(e, type) {
+            if(e.key === 'Enter' && e.target.value) {
+                if(type === 'task') {
+                    if(!db.tasks[selDate]) db.tasks[selDate] = [];
+                    db.tasks[selDate].push({text: e.target.value, done: false, subs: []});
+                } else {
+                    if(!db.events[selDate]) db.events[selDate] = [];
+                    db.events[selDate].push(e.target.value);
+                }
+                e.target.value = ''; save(); renderCalendar();
             }
         }
 
-        function handleSubKey(e, tIdx) {
-            if (e.key === 'Enter') {
-                const val = e.target.value;
-                if (!val) return;
-                tasks[selectedDate][tIdx].subs.push({ text: val, done: false });
-                e.target.value = '';
-                save();
-            }
+        function addCD() {
+            const name = document.getElementById('cdName').value, date = document.getElementById('cdDate').value;
+            if(name && date) { db.exams.push({name, date}); save(); renderCD(); }
         }
 
-        function toggleMain(tIdx) { tasks[selectedDate][tIdx].done = !tasks[selectedDate][tIdx].done; save(); renderCalendar(); }
-        function toggleSub(tIdx, sIdx) { tasks[selectedDate][tIdx].subs[sIdx].done = !tasks[selectedDate][tIdx].subs[sIdx].done; save(); }
-        function deleteTask(tIdx) { if(confirm("Delete mission?")) { tasks[selectedDate].splice(tIdx, 1); save(); renderCalendar(); } }
-        function save() { localStorage.setItem('oppa_tasks', JSON.stringify(tasks)); renderTasks(); }
-        function downloadBackup() { const blob = new Blob([JSON.stringify(tasks)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `oppa_elite_backup.json`; a.click(); }
-        function restoreBackup(event) { const reader = new FileReader(); reader.onload = (e) => { tasks = JSON.parse(e.target.result); save(); renderCalendar(); }; reader.readAsText(event.target.files[0]); }
+        function pinQuote() {
+            db.diary = document.getElementById('diaryIn').value;
+            document.getElementById('pinnedSection').classList.remove('hidden');
+            document.getElementById('pinnedText').innerText = db.diary;
+            save();
+        }
 
-        updateCountdown();
-        renderCalendar();
-        renderTasks();
+        function toggleT(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); renderCalendar(); }
+        function save() { localStorage.setItem('oppa_db', JSON.stringify(db)); renderData(); }
+        function changeMonth(o) { curDate.setMonth(curDate.getMonth() + o); renderCalendar(); }
+        function toggleTheme() { document.body.classList.toggle('dark'); }
+
+        renderCalendar(); showScreen('tasks');
+        if(db.diary) { document.getElementById('pinnedSection').classList.remove('hidden'); document.getElementById('pinnedText').innerText = db.diary; }
     </script>
 </body>
 </html>
