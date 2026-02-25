@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Ledger | Elite Hub</title>
+    <title>The Ledger | Private</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,24 +18,19 @@
         .active-day { border: 2px solid #3b82f6 !important; background: white; }
         .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
-        input:focus { border-color: #3b82f6; background: white; }
-        .pin-banner { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-        .sub-task-container { margin-left: 28px; border-left: 2px solid #cbd5e1; padding-left: 12px; margin-top: 8px; }
     </style>
 </head>
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
         <header class="flex items-center mb-6">
             <img src="https://cdn-icons-png.flaticon.com/512/2098/2098402.png" class="w-8 h-8 mr-2">
-            <h1 class="text-xl font-bold italic tracking-tighter">THE <span class="text-blue-600">LEDGER</span></h1>
+            <h1 class="text-xl font-bold italic tracking-tighter uppercase">The Ledger</h1>
         </header>
 
-        <div id="pinContainer" class="hidden">
-            <div class="pin-banner">
-                <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1">Priority</p>
-                <h2 id="pinContent" class="text-lg font-bold leading-tight"></h2>
-                <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
-            </div>
+        <div id="pinContainer" class="hidden mb-6 bg-blue-600 text-white p-4 rounded-xl shadow-lg text-center">
+            <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1"></p>
+            <h2 id="pinContent" class="text-lg font-bold leading-tight"></h2>
+            <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
         </div>
 
         <div class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
@@ -43,9 +38,6 @@
                 <button onclick="changeMonth(-1)" class="p-1 font-bold">◀</button>
                 <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500"></div>
                 <button onclick="changeMonth(1)" class="p-1 font-bold">▶</button>
-            </div>
-            <div class="grid grid-cols-7 gap-1 text-[9px] text-center font-black text-slate-400 mb-1">
-                <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
         </div>
@@ -61,7 +53,7 @@
             <div id="screen-countdown" class="hidden space-y-4">
                 <input type="text" id="cdName" placeholder="Exam Name">
                 <input type="date" id="cdDate">
-                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Countdown</button>
+                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Exam</button>
                 <div id="cdList" class="space-y-3"></div>
             </div>
 
@@ -71,8 +63,12 @@
             </div>
 
             <div id="screen-diary" class="hidden space-y-4">
-                <textarea id="diaryIn" rows="6" placeholder="Write your diary or a motivation quote..."></textarea>
-                <button onclick="pinItem('DIARY', document.getElementById('diaryIn').value)" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase shadow-lg">Pin to Top</button>
+                <textarea id="diaryIn" rows="4" placeholder="Write a note or quote..." class="mb-2"></textarea>
+                <div class="flex gap-2">
+                    <button onclick="saveDiary()" class="flex-1 bg-slate-900 text-white py-2 rounded-lg font-bold text-xs uppercase">Save</button>
+                    <button onclick="pinItem('NOTE', document.getElementById('diaryIn').value)" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs uppercase">Pin</button>
+                </div>
+                <div id="diaryList" class="mt-4 space-y-2"></div>
             </div>
         </div>
 
@@ -85,9 +81,17 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('oppa_db')) || { tasks: {}, exams: [], events: {}, pin: null };
+        // Use a unique key for your device privacy
+        const STORAGE_KEY = 'the_ledger_private_db';
+        let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { tasks: {}, exams: [], events: {}, pin: null, diaries: [] };
         let curDate = new Date();
         let selDate = new Date().toISOString().split('T')[0];
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+            renderData();
+            renderCalendar();
+        }
 
         function showScreen(s) {
             ['tasks', 'countdown', 'events', 'diary'].forEach(id => {
@@ -120,87 +124,78 @@
         }
 
         function renderData() {
-            const tList = document.getElementById('taskList'), eList = document.getElementById('evList'), cList = document.getElementById('cdList');
-            tList.innerHTML = ''; eList.innerHTML = ''; cList.innerHTML = '';
+            const tList = document.getElementById('taskList'), eList = document.getElementById('evList'), cList = document.getElementById('cdList'), dList = document.getElementById('diaryList');
+            tList.innerHTML = ''; eList.innerHTML = ''; cList.innerHTML = ''; dList.innerHTML = '';
             
             (db.tasks[selDate] || []).forEach((t, i) => {
-                let subHtml = (t.subs || []).map((s, si) => `
-                    <div class="flex items-center gap-2 mb-2">
+                let subItems = (t.subs || []).map((s, si) => `
+                    <div class="flex items-center gap-2 mb-1">
                         <div class="cube-checkbox scale-75 ${s.done?'checked':''}" onclick="toggleS(${i},${si})"></div>
-                        <p class="text-[11px] ${s.done?'line-through opacity-40':''}">${s.text}</p>
+                        <p class="text-[11px] flex-grow ${s.done?'line-through opacity-40':''}">${s.text}</p>
+                        <button onclick="editS(${i},${si})" class="text-[8px] text-blue-500 font-bold uppercase">Edit</button>
                     </div>`).join('');
-
                 tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600 shadow-sm">
                     <div class="flex items-start gap-3">
                         <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
                         <div class="flex-grow">
-                            <p class="text-sm font-bold ${t.done?'line-through opacity-40':''}">${t.text}</p>
-                            <div class="sub-task-container">${subHtml}
-                                <input type="text" placeholder="+ Sub-task" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6">
+                            <p class="text-sm font-bold ${t.done?'line-through opacity-40':''} text-slate-800 uppercase">${t.text}</p>
+                            <div class="ml-4 mt-2">${subItems}
+                                <input type="text" placeholder="+ Step" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6">
                             </div>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <button onclick="pinItem('TASK', '${t.text}')" class="text-[9px] text-blue-500 font-bold">PIN</button>
-                            <button onclick="delT(${i})" class="text-[9px] text-slate-400">DEL</button>
+                            <button onclick="editT(${i})" class="text-[9px] font-bold text-slate-400 uppercase">Edit</button>
+                            <button onclick="delT(${i})" class="text-[9px] font-bold text-red-500 uppercase">Del</button>
                         </div>
                     </div>
                 </div>`;
             });
 
-            (db.events[selDate] || []).forEach((e, i) => {
-                eList.innerHTML += `<div class="flex justify-between p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r-xl">
-                    <span class="text-xs font-bold">${e}</span>
-                    <button onclick="pinItem('EVENT', '${e}')" class="text-[10px] text-blue-500 font-bold">PIN</button>
+            db.exams.forEach((ex, i) => {
+                const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
+                cList.innerHTML += `<div class="p-3 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center">
+                    <div><p class="text-xs font-bold uppercase">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div>
+                    <div class="flex gap-3"><button onclick="editCD(${i})" class="text-[9px] font-bold text-slate-400">EDIT</button><button onclick="delCD(${i})" class="text-[9px] font-bold text-red-400">DEL</button></div>
                 </div>`;
             });
 
-            db.exams.forEach((ex, i) => {
-                const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
-                cList.innerHTML += `<div class="flex justify-between items-center p-3 bg-red-50 border border-red-100 rounded-xl">
-                    <div><p class="text-xs font-bold">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div>
-                    <button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days Left')" class="text-[10px] text-blue-500 font-bold">PIN</button>
+            (db.events[selDate] || []).forEach((e, i) => {
+                eList.innerHTML += `<div class="flex justify-between p-3 bg-blue-50 border-l-4 border-blue-500 rounded-xl">
+                    <span class="text-xs font-bold uppercase">${e}</span>
+                    <div class="flex gap-3"><button onclick="editE(${i})" class="text-[9px] font-bold text-slate-400">EDIT</button><button onclick="delE(${i})" class="text-[9px] font-bold text-red-400">DEL</button></div>
+                </div>`;
+            });
+
+            db.diaries.forEach((d, i) => {
+                dList.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <p class="text-xs italic">"${d}"</p>
+                    <div class="flex justify-end gap-3 mt-2"><button onclick="editD(${i})" class="text-[9px] font-bold text-blue-500">EDIT</button><button onclick="delD(${i})" class="text-[9px] font-bold text-red-500">DEL</button></div>
                 </div>`;
             });
             renderPin();
         }
 
-        function handleKey(e, type) {
-            if(e.key === 'Enter' && e.target.value) {
-                if(type === 'task') {
-                    if(!db.tasks[selDate]) db.tasks[selDate] = [];
-                    db.tasks[selDate].push({text: e.target.value, done: false, subs: []});
-                } else {
-                    if(!db.events[selDate]) db.events[selDate] = [];
-                    db.events[selDate].push(e.target.value);
-                }
-                e.target.value = ''; save(); renderCalendar();
-            }
-        }
+        function handleKey(e, type) { if(e.key === 'Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false, subs:[]}); } else { if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
+        function handleSub(e, i) { if(e.key === 'Enter' && e.target.value) { db.tasks[selDate][i].subs.push({text:e.target.value, done:false}); e.target.value=''; save(); } }
+        function addCD() { const n=document.getElementById('cdName').value, d=document.getElementById('cdDate').value; if(n && d){ db.exams.push({name:n, date:d}); save(); } }
+        function saveDiary() { const v=document.getElementById('diaryIn').value; if(v){ db.diaries.push(v); document.getElementById('diaryIn').value=''; save(); } }
 
-        function handleSub(e, i) {
-            if(e.key === 'Enter' && e.target.value) {
-                db.tasks[selDate][i].subs.push({text: e.target.value, done: false});
-                e.target.value = ''; save();
-            }
-        }
+        function editT(i) { const v=prompt("Edit Task:", db.tasks[selDate][i].text); if(v){ db.tasks[selDate][i].text=v; save(); } }
+        function editS(ti, si) { const v=prompt("Edit Step:", db.tasks[selDate][ti].subs[si].text); if(v){ db.tasks[selDate][ti].subs[si].text=v; save(); } }
+        function editE(i) { const v=prompt("Edit Event:", db.events[selDate][i]); if(v){ db.events[selDate][i]=v; save(); } }
+        function editCD(i) { const n=prompt("Name:", db.exams[i].name), d=prompt("Date:", db.exams[i].date); if(n&&d){ db.exams[i]={name:n, date:d}; save(); } }
+        function editD(i) { const v=prompt("Edit Note:", db.diaries[i]); if(v){ db.diaries[i]=v; save(); } }
+        function delT(i){ if(confirm("Delete task?")){ db.tasks[selDate].splice(i,1); save(); } }
+        function delE(i){ if(confirm("Delete event?")){ db.events[selDate].splice(i,1); save(); } }
+        function delCD(i){ if(confirm("Delete exam?")){ db.exams.splice(i,1); save(); } }
+        function delD(i){ if(confirm("Delete note?")){ db.diaries.splice(i,1); save(); } }
 
-        function addCD() {
-            const name = document.getElementById('cdName').value, date = document.getElementById('cdDate').value;
-            if(name && date) { db.exams.push({name, date}); save(); showScreen('countdown'); }
-        }
-
-        function pinItem(type, content) { db.pin = { type, content }; save(); renderPin(); }
-        function renderPin() {
-            const c = document.getElementById('pinContainer');
-            if(db.pin) { c.classList.remove('hidden'); document.getElementById('pinLabel').innerText = db.pin.type; document.getElementById('pinContent').innerText = db.pin.content; }
-            else { c.classList.add('hidden'); }
-        }
-        function clearPin() { db.pin = null; save(); renderPin(); }
-        function toggleT(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); renderCalendar(); }
-        function toggleS(ti, si) { db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
-        function delT(i) { db.tasks[selDate].splice(i,1); save(); renderCalendar(); }
-        function save() { localStorage.setItem('oppa_db', JSON.stringify(db)); renderData(); }
-        function changeMonth(o) { curDate.setMonth(curDate.getMonth() + o); renderCalendar(); }
+        function toggleT(i){ db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
+        function toggleS(ti, si){ db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
+        function pinItem(type, content) { db.pin = { type, content }; save(); }
+        function clearPin() { db.pin = null; save(); }
+        function renderPin() { const c=document.getElementById('pinContainer'); if(db.pin){ c.classList.remove('hidden'); document.getElementById('pinLabel').innerText=db.pin.type; document.getElementById('pinContent').innerText=db.pin.content; } else c.classList.add('hidden'); }
+        function changeMonth(o){ curDate.setMonth(curDate.getMonth() + o); renderCalendar(); }
 
         renderCalendar(); showScreen('tasks');
     </script>
