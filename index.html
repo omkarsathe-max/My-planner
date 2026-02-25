@@ -25,8 +25,9 @@
         .line-diary { width: 10px; height: 2px; background: #eab308; }
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
         .dashboard-section { border-left: 4px solid #3b82f6; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 8px; }
-        .action-btn { font-size: 16px; opacity: 0.7; }
-        .intel-list-item { background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 8px; font-size: 13px; }
+        .del-btn { color: #ef4444; font-size: 20px; font-weight: bold; line-height: 1; }
+        .edit-input { background: white; border: 1px solid #3b82f6; padding: 2px 4px; border-radius: 4px; width: 100%; }
+        #calendarContainer { touch-action: pan-y; }
     </style>
 </head>
 <body class="p-4 pb-24">
@@ -44,9 +45,9 @@
 
         <div id="calendarContainer" class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
             <div class="flex justify-between items-center mb-3">
-                <button onclick="changeMonth(-1)">◀</button>
+                <button onclick="changeMonth(-1)" class="p-1 font-bold">◀</button>
                 <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500"></div>
-                <button onclick="changeMonth(1)">▶</button>
+                <button onclick="changeMonth(1)" class="p-1 font-bold">▶</button>
             </div>
             <div class="grid grid-cols-7 gap-1 text-[9px] text-center font-black text-slate-400 mb-1">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
@@ -59,7 +60,7 @@
                 <h2 class="text-[10px] font-black text-blue-600 uppercase tracking-widest">Day Overview</h2>
                 <span id="selectedDateDisplay" class="text-[10px] font-bold text-slate-400"></span>
             </div>
-            <div id="dashboardEntries" class="space-y-3 min-h-[50px]"></div>
+            <div id="dashboardEntries" class="space-y-3"></div>
         </div>
 
         <div id="mainContent" class="bg-card p-5 rounded-2xl shadow-sm mb-4">
@@ -86,10 +87,8 @@
                     <h3 id="statDiaries" class="text-2xl font-bold">0</h3>
                 </div>
             </div>
-            <div id="intelDetailList" class="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
-                <p class="text-center text-[10px] text-slate-400 italic">Select a category above to view all items</p>
-            </div>
-            <button onclick="downloadBackup()" class="w-full bg-slate-200 py-3 rounded-xl text-[10px] font-bold uppercase">Download Backup</button>
+            <div id="intelDetailList" class="space-y-2 max-h-[250px] overflow-y-auto"></div>
+            <button onclick="downloadReadableData()" class="w-full bg-slate-900 text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest">📥 Download List Document</button>
         </div>
 
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-1 shadow-lg z-50">
@@ -108,25 +107,27 @@
         let selDate = new Date().toISOString().split('T')[0];
         let activeTab = 'tasks';
 
+        // SWIPE LOGIC
+        let tsX = 0; let teX = 0;
+        const calArea = document.getElementById('calendarContainer');
+        calArea.addEventListener('touchstart', e => { tsX = e.changedTouches[0].screenX; }, false);
+        calArea.addEventListener('touchend', e => { teX = e.changedTouches[0].screenX; if(teX < tsX - 50) changeMonth(1); if(teX > tsX + 50) changeMonth(-1); }, false);
+
         function save() { localStorage.setItem(KEY, JSON.stringify(db)); renderCalendar(); updateDashboard(); if(activeTab === 'intel') renderIntel(); }
 
         function showScreen(s) {
             activeTab = s;
             ['tasks', 'exams', 'events', 'diary', 'intel'].forEach(id => document.getElementById('btn-'+id).classList.remove('active'));
             document.getElementById('btn-'+s).classList.add('active');
-            
-            const main = document.getElementById('mainContent');
-            const intel = document.getElementById('screen-intel');
-            const inputArea = document.getElementById('screen-input');
-            
+            const main = document.getElementById('mainContent'), intel = document.getElementById('screen-intel'), inputArea = document.getElementById('screen-input');
             if(s === 'intel') { main.classList.add('hidden'); intel.classList.remove('hidden'); renderIntel(); }
             else {
                 main.classList.remove('hidden'); intel.classList.add('hidden');
                 document.getElementById('viewTitle').innerText = s.toUpperCase();
-                if(s === 'tasks') inputArea.innerHTML = `<input type="text" placeholder="+ New Task" onkeypress="handleEntry(event, 'task')">`;
-                else if(s === 'exams') inputArea.innerHTML = `<input type="text" placeholder="+ Exam Name" onkeypress="handleEntry(event, 'exam')">`;
-                else if(s === 'events') inputArea.innerHTML = `<input type="text" placeholder="+ New Event" onkeypress="handleEntry(event, 'event')">`;
-                else if(s === 'diary') inputArea.innerHTML = `<textarea rows="3" id="diaryBox" placeholder="Note for today..."></textarea><button onclick="saveDiary()" class="bg-blue-600 text-white w-full mt-2 py-2 rounded-lg font-bold text-xs">SAVE NOTE</button>`;
+                if(s === 'tasks') inputArea.innerHTML = `<input type="text" placeholder="+ Add task for ${selDate}" onkeypress="handleEntry(event, 'task')">`;
+                else if(s === 'exams') inputArea.innerHTML = `<input type="text" placeholder="+ Add exam name for ${selDate}" onkeypress="handleEntry(event, 'exam')">`;
+                else if(s === 'events') inputArea.innerHTML = `<input type="text" placeholder="+ Add event for ${selDate}" onkeypress="handleEntry(event, 'event')">`;
+                else if(s === 'diary') inputArea.innerHTML = `<textarea id="diaryBox" placeholder="Write note for ${selDate}">${db.diaries[selDate] || ''}</textarea><button onclick="saveDiary()" class="bg-blue-600 text-white w-full mt-2 py-2 rounded-lg font-bold text-xs">SAVE NOTE</button>`;
                 updateDashboard();
             }
         }
@@ -150,7 +151,7 @@
                 if(db.events[dStr]?.length > 0) ind.innerHTML += `<div class="star-event">★</div>`;
                 if(db.diaries[dStr]) ind.innerHTML += `<div class="line-diary"></div>`;
                 d.appendChild(ind);
-                d.onclick = () => { selDate = dStr; renderCalendar(); updateDashboard(); };
+                d.onclick = () => { selDate = dStr; renderCalendar(); showScreen(activeTab); };
                 grid.appendChild(d);
             }
         }
@@ -159,35 +160,59 @@
             const container = document.getElementById('dashboardEntries');
             document.getElementById('selectedDateDisplay').innerText = selDate;
             container.innerHTML = '';
-            db.exams.filter(ex => ex.date === selDate).forEach((ex) => {
+            // Exam Dashboard
+            db.exams.filter(ex => ex.date === selDate).forEach(ex => {
                 container.innerHTML += `<div class="dashboard-section border-l-red-500 bg-red-50 flex justify-between items-center"><p class="text-xs font-bold uppercase">${ex.name} (EXAM)</p>
-                <div class="flex gap-2"><button onclick="editExam('${ex.name}','${ex.date}')" class="action-btn">📝</button><button onclick="delExam('${ex.name}','${ex.date}')" class="action-btn">🗑️</button></div></div>`;
+                <div class="flex gap-4"><button onclick="pinItem('EXAM','${ex.name}','${ex.date}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditCD('${ex.name}','${ex.date}', this)" class="text-lg">📝</button><button onclick="delExam('${ex.name}','${ex.date}')" class="del-btn">×</button></div></div>`;
             });
+            // Task Dashboard
             (db.tasks[selDate] || []).forEach((t, i) => {
                 container.innerHTML += `<div class="dashboard-section flex items-center gap-3"><div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleTask(${i})"></div>
                 <p class="flex-grow text-sm ${t.done?'line-through opacity-40':''}">${t.text}</p>
-                <div class="flex gap-2"><button onclick="editTask(${i})" class="action-btn">📝</button><button onclick="delTask(${i})" class="action-btn">🗑️</button></div></div>`;
+                <div class="flex gap-4"><button onclick="pinItem('TASK','${t.text}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditTask(${i}, this)" class="text-lg">📝</button><button onclick="delTask(${i})" class="del-btn">×</button></div></div>`;
             });
+            // Event Dashboard
             (db.events[selDate] || []).forEach((e, i) => {
-                container.innerHTML += `<div class="dashboard-section border-l-green-500 bg-green-50 flex justify-between items-center"><span class="text-sm">${e} (EVENT)</span>
-                <div class="flex gap-2"><button onclick="editEvent(${i})" class="action-btn">📝</button><button onclick="delEvent(${i})" class="action-btn">🗑️</button></div></div>`;
+                container.innerHTML += `<div class="dashboard-section border-l-green-500 bg-green-50 flex justify-between items-center"><span class="text-sm">${e}</span>
+                <div class="flex gap-4"><button onclick="pinItem('EVENT','${e}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditEvent(${i}, this)" class="text-lg">📝</button><button onclick="delEvent(${i})" class="del-btn">×</button></div></div>`;
             });
-            if(db.diaries[selDate]) {
-                container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p>
-                <button onclick="editDiary()" class="action-btn">📝</button></div>`;
-            }
+            // Diary Dashboard
+            if(db.diaries[selDate]) container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p><button onclick="delDiary()" class="del-btn">×</button></div>`;
+            renderPin();
         }
 
-        function handleEntry(e, type) { if(e.key === 'Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false}); } else if(type==='exam'){ db.exams.push({name:e.target.value, date:selDate}); } else if(type==='event'){ if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
+        // IN-PLACE EDITING (NO POP-UPS)
+        function inlineEditTask(i, btn) {
+            const p = btn.parentElement.parentElement.querySelector('p');
+            const old = db.tasks[selDate][i].text;
+            p.innerHTML = `<input type="text" class="edit-input" value="${old}" id="eTask">`;
+            const input = document.getElementById('eTask'); input.focus();
+            input.onblur = () => { if(input.value) db.tasks[selDate][i].text = input.value; save(); };
+            input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); };
+        }
+        function inlineEditEvent(i, btn) {
+            const p = btn.parentElement.parentElement.querySelector('span');
+            const old = db.events[selDate][i];
+            p.innerHTML = `<input type="text" class="edit-input" value="${old}" id="eEvent">`;
+            const input = document.getElementById('eEvent'); input.focus();
+            input.onblur = () => { if(input.value) db.events[selDate][i] = input.value; save(); };
+            input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); };
+        }
+        function inlineEditCD(name, date, btn) {
+            const p = btn.parentElement.parentElement.querySelector('p');
+            p.innerHTML = `<input type="text" class="edit-input" value="${name}" id="eExam">`;
+            const input = document.getElementById('eExam'); input.focus();
+            input.onblur = () => { if(input.value) db.exams.find(ex=>ex.name===name&&ex.date===date).name = input.value; save(); };
+            input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); };
+        }
+
+        function handleEntry(e, type) { if(e.key==='Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false}); } else if(type==='exam'){ db.exams.push({name:e.target.value, date:selDate}); } else if(type==='event'){ if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
         function saveDiary() { db.diaries[selDate] = document.getElementById('diaryBox').value; save(); }
-        function editTask(i) { const v=prompt("Edit Task:", db.tasks[selDate][i].text); if(v){db.tasks[selDate][i].text=v; save();} }
-        function editEvent(i) { const v=prompt("Edit Event:", db.events[selDate][i]); if(v){db.events[selDate][i]=v; save();} }
-        function editExam(name, date) { const v=prompt("Edit Exam Name:", name); if(v){ db.exams.find(ex=>ex.name===name&&ex.date===date).name=v; save();} }
-        function editDiary() { const v=prompt("Edit Note:", db.diaries[selDate]); if(v){db.diaries[selDate]=v; save();} }
-        function toggleTask(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
         function delTask(i) { db.tasks[selDate].splice(i,1); save(); }
         function delExam(n, d) { db.exams = db.exams.filter(ex => !(ex.name===n && ex.date===d)); save(); }
         function delEvent(i) { db.events[selDate].splice(i,1); save(); }
+        function delDiary() { delete db.diaries[selDate]; save(); }
+        function toggleTask(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
 
         function renderIntel() { 
             const today=new Date().toISOString().split('T')[0];
@@ -200,34 +225,25 @@
         }
 
         function showIntelDetail(type) {
-            const list = document.getElementById('intelDetailList');
-            list.innerHTML = `<h4 class="text-[10px] font-black uppercase text-slate-500 mb-2">All ${type}</h4>`;
-            const today = new Date().toISOString().split('T')[0];
-            if(type === 'tasks') {
-                Object.keys(db.tasks).forEach(date => db.tasks[date].forEach(t => {
-                    list.innerHTML += `<div class="intel-list-item flex justify-between"><span>${t.text}</span><span class="text-[9px] opacity-40">${date}</span></div>`;
-                }));
-            } else if(type === 'exams') {
-                db.exams.filter(ex=>ex.date >= today).sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex => {
-                    list.innerHTML += `<div class="intel-list-item border-l-4 border-l-red-500 flex justify-between"><span>${ex.name}</span><span class="font-bold text-red-500">${ex.date}</span></div>`;
-                });
-            } else if(type === 'events') {
-                Object.keys(db.events).forEach(date => db.events[date].forEach(e => {
-                    list.innerHTML += `<div class="intel-list-item border-l-4 border-l-green-500 flex justify-between"><span>${e}</span><span class="text-[9px] opacity-40">${date}</span></div>`;
-                }));
-            } else if(type === 'diary') {
-                Object.keys(db.diaries).forEach(date => {
-                    list.innerHTML += `<div class="intel-list-item border-l-4 border-l-yellow-500">
-                        <p class="text-[9px] font-bold mb-1">${date}</p><p class="italic text-slate-600">"${db.diaries[date]}"</p>
-                    </div>`;
-                });
-            }
+            const list = document.getElementById('intelDetailList'); list.innerHTML = `<h4 class="text-[10px] font-black uppercase text-slate-500 mb-2">Detailed ${type} List</h4>`;
+            if(type==='tasks') Object.keys(db.tasks).forEach(d=>db.tasks[d].forEach(t=>list.innerHTML += `<div class="bg-white p-2 text-xs border rounded mb-1 flex justify-between"><span>${t.text}</span><span class="opacity-40">${d}</span></div>`));
+            else if(type==='exams') db.exams.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex=>list.innerHTML += `<div class="bg-red-50 p-2 text-xs border border-red-100 rounded mb-1 flex justify-between"><span>${ex.name}</span><span class="font-bold">${ex.date}</span></div>`);
+            else if(type==='events') Object.keys(db.events).forEach(d=>db.events[d].forEach(e=>list.innerHTML += `<div class="bg-green-50 p-2 text-xs border border-green-100 rounded mb-1 flex justify-between"><span>${e}</span><span class="opacity-40">${d}</span></div>`));
+            else if(type==='diary') Object.keys(db.diaries).forEach(d=>list.innerHTML += `<div class="bg-yellow-50 p-2 text-xs border border-yellow-100 rounded mb-1"><b>${d}:</b> ${db.diaries[d]}</div>`);
         }
 
+        function pinItem(t,c,d) { const m=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; const dt=new Date(d); db.pin={type:`${m[dt.getMonth()]} ${dt.getDate()} - ${t}`, content:c}; save(); }
         function clearPin() { db.pin=null; save(); }
         function renderPin() { const c=document.getElementById('pinContainer'); if(db.pin){ c.classList.remove('hidden'); document.getElementById('pinLabel').innerText=db.pin.type; document.getElementById('pinContent').innerText=db.pin.content; } else c.classList.add('hidden'); }
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
-        function downloadBackup() { const b=new Blob([JSON.stringify(db)], {type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`the_ledger_backup.json`; a.click(); }
+
+        function downloadReadableData() {
+            let doc = "--- THE LEDGER: ACADEMIC MISSION LIST ---\n\n";
+            doc += "EXAMS:\n" + db.exams.map(ex => `[${ex.date}] ${ex.name}`).join("\n") + "\n\n";
+            doc += "PENDING TASKS:\n" + Object.keys(db.tasks).map(d => db.tasks[d].filter(t=>!t.done).map(t => `[${d}] ${t.text}`).join("\n")).join("\n") + "\n\n";
+            doc += "EVENTS:\n" + Object.keys(db.events).map(d => db.events[d].map(e => `[${d}] ${e}`).join("\n")).join("\n");
+            const b=new Blob([doc], {type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`TheLedger_List.txt`; a.click();
+        }
 
         renderCalendar(); showScreen('tasks');
     </script>
