@@ -20,7 +20,7 @@
         .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
         .dark-dot { background: white; }
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
-        .action-btn { font-size: 14px; opacity: 0.6; transition: opacity 0.2s; }
+        .action-btn { font-size: 16px; opacity: 0.6; transition: opacity 0.2s; }
         #calendarContainer { touch-action: pan-y; }
     </style>
 </head>
@@ -59,8 +59,8 @@
 
             <div id="screen-countdown" class="hidden space-y-4">
                 <input type="text" id="cdName" placeholder="Exam Name">
-                <input type="date" id="cdDate">
-                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Exam</button>
+                <input type="date" id="cdDate" class="cursor-pointer">
+                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest">Add Exam</button>
                 <div id="cdList" class="space-y-3"></div>
             </div>
 
@@ -151,7 +151,7 @@
                         <p class="text-[11px] flex-grow ${s.done?'line-through opacity-40':''}">${s.text}</p>
                         <button onclick="editS(${i},${si})" class="action-btn">📝</button>
                     </div>`).join('');
-                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600">
+                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600 shadow-sm">
                     <div class="flex items-start gap-3">
                         <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
                         <div class="flex-grow">
@@ -203,7 +203,7 @@
             renderPin();
         }
 
-        // IMPROVED EDITING (IN-PLACE)
+        // IN-PLACE EDITING (NO POP-UPS)
         function editT(i) {
             const p = document.querySelectorAll('#taskList > div')[i].querySelector('p');
             const old = db.tasks[selDate][i].text;
@@ -247,7 +247,18 @@
 
         function handleKey(e, type) { if(e.key === 'Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false, subs:[]}); } else { if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
         function handleSub(e, i) { if(e.key === 'Enter' && e.target.value) { db.tasks[selDate][i].subs.push({text:e.target.value, done:false}); e.target.value=''; save(); } }
-        function addCD() { const n=document.getElementById('cdName').value, d=document.getElementById('cdDate').value; if(n && d){ db.exams.push({name:n, date:d}); save(); } }
+        
+        // MULTI-EXAM FIX
+        function addCD() { 
+            const n=document.getElementById('cdName').value, d=document.getElementById('cdDate').value; 
+            if(n && d){ 
+                db.exams.push({name:n, date:d}); 
+                document.getElementById('cdName').value = '';
+                document.getElementById('cdDate').value = '';
+                save(); 
+            } 
+        }
+
         function saveDiary() { const v=document.getElementById('diaryIn').value; if(v){ db.diaries.push(v); document.getElementById('diaryIn').value=''; save(); } }
         function delT(i){ if(confirm("Delete task?")){ db.tasks[selDate].splice(i,1); save(); } }
         function delE(i){ if(confirm("Delete event?")){ db.events[selDate].splice(i,1); save(); } }
@@ -256,7 +267,6 @@
         function toggleT(i){ db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
         function toggleS(ti, si){ db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
 
-        // PIN LOGIC WITH DATE FORMATTING
         function pinItem(type, content, dateStr) {
             let label = type;
             if (dateStr) {
