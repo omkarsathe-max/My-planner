@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Ledger | Ultimate</title>
-    
-    <link rel="icon" type="image/png" href="https://i.postimg.cc/8P7t00yS/1000002682.png">
-    <link rel="apple-touch-icon" href="https://i.postimg.cc/8P7t00yS/1000002682.png">
-    
+    <title>The Ledger | Private</title>
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -21,30 +18,27 @@
         .active-day { border: 2px solid #3b82f6 !important; background: white; }
         .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
-        .pin-banner { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-        .sub-task-container { margin-left: 28px; border-left: 2px solid #cbd5e1; padding-left: 12px; margin-top: 8px; }
+        .action-btn { font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 1px solid #e2e8f0; background: white; }
     </style>
 </head>
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
         <header class="flex items-center mb-6">
-            <img src="https://i.postimg.cc/8P7t00yS/1000002682.png" class="w-8 h-8 mr-2">
-            <h1 class="text-xl font-bold italic tracking-tighter uppercase">The <span class="text-blue-600">Ledger</span></h1>
+            <img src="https://cdn-icons-png.flaticon.com/512/2098/2098402.png" class="w-8 h-8 mr-2">
+            <h1 class="text-xl font-bold italic tracking-tighter uppercase text-slate-800">The Ledger</h1>
         </header>
 
-        <div id="pinContainer" class="hidden">
-            <div class="pin-banner">
-                <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1"></p>
-                <h2 id="pinContent" class="text-lg font-bold leading-tight"></h2>
-                <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
-            </div>
+        <div id="pinContainer" class="hidden mb-6 bg-blue-600 text-white p-4 rounded-xl shadow-lg text-center">
+            <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1"></p>
+            <h2 id="pinContent" class="text-lg font-bold leading-tight"></h2>
+            <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
         </div>
 
         <div class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
             <div class="flex justify-between items-center mb-3">
-                <button onclick="changeMonth(-1)" class="p-1 font-bold text-slate-400">◀</button>
-                <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500"></div>
-                <button onclick="changeMonth(1)" class="p-1 font-bold text-slate-400">▶</button>
+                <button onclick="changeMonth(-1)" class="p-1 font-bold">◀</button>
+                <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500 text-center"></div>
+                <button onclick="changeMonth(1)" class="p-1 font-bold">▶</button>
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
         </div>
@@ -60,7 +54,7 @@
             <div id="screen-countdown" class="hidden space-y-4">
                 <input type="text" id="cdName" placeholder="Exam Name">
                 <input type="date" id="cdDate">
-                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Countdown</button>
+                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Exam</button>
                 <div id="cdList" class="space-y-3"></div>
             </div>
 
@@ -70,8 +64,8 @@
             </div>
 
             <div id="screen-diary" class="hidden space-y-4">
-                <textarea id="diaryIn" rows="4" placeholder="Write a note or quote..."></textarea>
-                <div class="flex gap-2 mt-2">
+                <textarea id="diaryIn" rows="4" placeholder="Note or Quote..." class="mb-2"></textarea>
+                <div class="flex gap-2">
                     <button onclick="saveDiary()" class="flex-1 bg-slate-900 text-white py-2 rounded-lg font-bold text-xs">SAVE</button>
                     <button onclick="pinItem('NOTE', document.getElementById('diaryIn').value)" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs">PIN</button>
                 </div>
@@ -88,16 +82,12 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'the_ledger_private_db';
-        let db = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { tasks: {}, exams: [], events: {}, pin: null, diaries: [] };
+        const KEY = 'the_ledger_private_db';
+        let db = JSON.parse(localStorage.getItem(KEY)) || { tasks: {}, exams: [], events: {}, pin: null, diaries: [] };
         let curDate = new Date();
         let selDate = new Date().toISOString().split('T')[0];
 
-        function save() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-            renderData();
-            renderCalendar();
-        }
+        function save() { localStorage.setItem(KEY, JSON.stringify(db)); renderData(); renderCalendar(); }
 
         function showScreen(s) {
             ['tasks', 'countdown', 'events', 'diary'].forEach(id => {
@@ -138,21 +128,21 @@
                     <div class="flex items-center gap-2 mb-1">
                         <div class="cube-checkbox scale-75 ${s.done?'checked':''}" onclick="toggleS(${i},${si})"></div>
                         <p class="text-[11px] flex-grow ${s.done?'line-through opacity-40':''}">${s.text}</p>
-                        <button onclick="editS(${i},${si})" class="text-[8px] text-blue-400">EDIT</button>
+                        <button onclick="editS(${i},${si})" class="text-[8px] text-blue-400 font-bold uppercase">Edit</button>
                     </div>`).join('');
-                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600 shadow-sm">
+                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600">
                     <div class="flex items-start gap-3">
                         <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
                         <div class="flex-grow">
                             <p class="text-sm font-bold ${t.done?'line-through opacity-40':''}">${t.text}</p>
-                            <div class="sub-task-container">${subs}
-                                <input type="text" placeholder="+ Sub-task" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6">
+                            <div class="ml-4 mt-2">${subs}
+                                <input type="text" placeholder="+ Step" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6 bg-white">
                             </div>
                         </div>
                         <div class="flex flex-col gap-1">
-                            <button onclick="pinItem('TASK', '${t.text}')" class="text-[9px] font-bold text-blue-500 uppercase border border-blue-100 rounded px-1">PIN</button>
-                            <button onclick="editT(${i})" class="text-[9px] font-bold text-slate-400 uppercase">EDIT</button>
-                            <button onclick="delT(${i})" class="text-[9px] font-bold text-red-500 uppercase">DEL</button>
+                            <button onclick="pinItem('TASK', '${t.text}')" class="action-btn text-blue-600">PIN</button>
+                            <button onclick="editT(${i})" class="action-btn text-slate-400">EDIT</button>
+                            <button onclick="delT(${i})" class="action-btn text-red-400">DEL</button>
                         </div>
                     </div>
                 </div>`;
@@ -162,10 +152,10 @@
                 const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
                 cList.innerHTML += `<div class="p-3 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center">
                     <div><p class="text-xs font-bold uppercase">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div>
-                    <div class="flex gap-2">
-                        <button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days Left')" class="text-[9px] font-bold text-blue-500 border border-blue-100 rounded px-1">PIN</button>
-                        <button onclick="editCD(${i})" class="text-[9px] font-bold text-slate-400">EDIT</button>
-                        <button onclick="delCD(${i})" class="text-[9px] font-bold text-red-400">DEL</button>
+                    <div class="flex flex-col gap-1">
+                        <button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days')" class="action-btn text-blue-600">PIN</button>
+                        <button onclick="editCD(${i})" class="action-btn text-slate-400">EDIT</button>
+                        <button onclick="delCD(${i})" class="action-btn text-red-400">DEL</button>
                     </div>
                 </div>`;
             });
@@ -178,8 +168,7 @@
             });
 
             db.diaries.forEach((d, i) => {
-                dList.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <p class="text-xs italic">"${d}"</p>
+                dList.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border border-slate-200"><p class="text-xs italic">"${d}"</p>
                     <div class="flex justify-end gap-3 mt-2"><button onclick="editD(${i})" class="text-[9px] font-bold text-blue-500">EDIT</button><button onclick="delD(${i})" class="text-[9px] font-bold text-red-500">DEL</button></div>
                 </div>`;
             });
@@ -196,11 +185,10 @@
         function editE(i) { const v=prompt("Edit Event:", db.events[selDate][i]); if(v){ db.events[selDate][i]=v; save(); } }
         function editCD(i) { const n=prompt("Name:", db.exams[i].name), d=prompt("Date:", db.exams[i].date); if(n&&d){ db.exams[i]={name:n, date:d}; save(); } }
         function editD(i) { const v=prompt("Edit Note:", db.diaries[i]); if(v){ db.diaries[i]=v; save(); } }
-        
-        function delT(i){ if(confirm("Delete?")){ db.tasks[selDate].splice(i,1); save(); } }
-        function delE(i){ if(confirm("Delete?")){ db.events[selDate].splice(i,1); save(); } }
-        function delCD(i){ if(confirm("Delete?")){ db.exams.splice(i,1); save(); } }
-        function delD(i){ if(confirm("Delete?")){ db.diaries.splice(i,1); save(); } }
+        function delT(i){ if(confirm("Delete task?")){ db.tasks[selDate].splice(i,1); save(); } }
+        function delE(i){ if(confirm("Delete event?")){ db.events[selDate].splice(i,1); save(); } }
+        function delCD(i){ if(confirm("Delete exam?")){ db.exams.splice(i,1); save(); } }
+        function delD(i){ if(confirm("Delete note?")){ db.diaries.splice(i,1); save(); } }
 
         function toggleT(i){ db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
         function toggleS(ti, si){ db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
