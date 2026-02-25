@@ -3,75 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oppa | Elite Hub</title>
+    <title>The Ledger | Elite Hub</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
     <style>
-        body { transition: background-color 0.3s; -webkit-tap-highlight-color: transparent; font-family: sans-serif; }
-        .dark body { background-color: #0f172a; color: #e2e8f0; }
-        body:not(.dark) { background-color: #f8fafc; color: #1e293b; }
+        body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
         .bg-card { background-color: white; border: 1px solid #e2e8f0; }
-        .dark .bg-card { background-color: #1e293b; border-color: #334155; }
-        .cube-checkbox { width: 20px; height: 20px; border: 2px solid #64748b; cursor: pointer; border-radius: 4px; }
+        .cube-checkbox { width: 20px; height: 20px; border: 2px solid #64748b; cursor: pointer; border-radius: 4px; position: relative; flex-shrink: 0; }
         .checked { background-color: #10b981; border-color: #10b981; }
         .checked::after { content: '✔'; color: white; position: absolute; left: 3px; top: -2px; font-size: 12px; }
-        .nav-btn { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; opacity: 0.5; }
+        .nav-btn { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; opacity: 0.4; color: #64748b; }
         .nav-btn.active { opacity: 1; color: #3b82f6; }
-        .calendar-day { min-height: 45px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid transparent; }
-        .active-day { border: 2px solid #3b82f6 !important; }
+        .calendar-day { min-height: 45px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid transparent; background: #f1f5f9; position: relative; }
+        .active-day { border: 2px solid #3b82f6 !important; background: white; }
         .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
-        input, textarea { width: 100%; background: transparent; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; outline: none; }
-        .dark input, .dark textarea { border-color: #334155; color: white; }
+        input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
+        input:focus { border-color: #3b82f6; background: white; }
+        .pin-banner { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 12px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .sub-task-container { margin-left: 28px; border-left: 2px solid #cbd5e1; padding-left: 12px; margin-top: 8px; }
     </style>
 </head>
-<body class="p-4 pb-24 dark">
+<body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
-        <header class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold italic">OPPA <span class="text-blue-500">ELITE</span></h1>
-            <button onclick="toggleTheme()" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800" id="themeBtn">🌙</button>
+        <header class="flex items-center mb-6">
+            <img src="https://cdn-icons-png.flaticon.com/512/2098/2098402.png" class="w-8 h-8 mr-2">
+            <h1 class="text-xl font-bold italic tracking-tighter">THE <span class="text-blue-600">LEDGER</span></h1>
         </header>
 
-        <div id="pinnedSection" class="bg-gradient-to-r from-blue-600 to-indigo-700 p-3 rounded-lg mb-6 text-white text-center shadow-lg hidden">
-            <p id="pinnedText" class="text-sm font-medium italic"></p>
+        <div id="pinContainer" class="hidden">
+            <div class="pin-banner">
+                <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1">Priority</p>
+                <h2 id="pinContent" class="text-lg font-bold leading-tight"></h2>
+                <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
+            </div>
         </div>
 
-        <div class="bg-card p-3 rounded-xl mb-6 shadow-md">
-            <div class="flex justify-between items-center mb-2">
-                <button onclick="changeMonth(-1)">◀</button>
-                <div id="monthLabel" class="font-bold text-sm uppercase"></div>
-                <button onclick="changeMonth(1)">▶</button>
+        <div class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+                <button onclick="changeMonth(-1)" class="p-1 font-bold">◀</button>
+                <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500"></div>
+                <button onclick="changeMonth(1)" class="p-1 font-bold">▶</button>
             </div>
-            <div class="grid grid-cols-7 gap-1 text-[8px] text-center font-bold opacity-50 mb-1">
+            <div class="grid grid-cols-7 gap-1 text-[9px] text-center font-black text-slate-400 mb-1">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
         </div>
 
-        <div id="content" class="bg-card p-4 rounded-xl shadow-lg min-height-[300px]">
-            <h2 id="viewTitle" class="text-xs font-black text-blue-500 uppercase mb-4">Tasks</h2>
-            <div id="screen-tasks" class="space-y-4">
-                <input type="text" id="taskIn" placeholder="+ Add Task (Enter)" onkeypress="handleKey(event, 'task')" class="mb-4">
+        <div id="mainContent" class="bg-card p-5 rounded-2xl shadow-sm min-h-[350px]">
+            <h2 id="viewTitle" class="text-xs font-black text-blue-600 uppercase mb-4 tracking-tighter">Tasks</h2>
+            
+            <div id="screen-tasks">
+                <input type="text" id="taskIn" placeholder="+ New Task (Enter)" onkeypress="handleKey(event, 'task')" class="mb-4">
                 <div id="taskList" class="space-y-4"></div>
             </div>
+
             <div id="screen-countdown" class="hidden space-y-4">
-                <input type="text" id="cdName" placeholder="Exam Name (e.g. CA Law)" class="mb-2">
-                <input type="date" id="cdDate" class="mb-2">
-                <button onclick="addCD()" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-xs">ADD COUNTDOWN</button>
-                <div id="cdList" class="space-y-2 mt-4"></div>
+                <input type="text" id="cdName" placeholder="Exam Name">
+                <input type="date" id="cdDate">
+                <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Countdown</button>
+                <div id="cdList" class="space-y-3"></div>
             </div>
+
             <div id="screen-events" class="hidden space-y-4">
                 <input type="text" id="evIn" placeholder="+ New Event (Enter)" onkeypress="handleKey(event, 'event')">
-                <div id="evList" class="space-y-2"></div>
+                <div id="evList" class="space-y-3"></div>
             </div>
+
             <div id="screen-diary" class="hidden space-y-4">
-                <textarea id="diaryIn" rows="5" placeholder="Write your thoughts or a motivation quote..." class="mb-2"></textarea>
-                <button onclick="pinQuote()" class="w-full bg-indigo-600 text-white py-2 rounded font-bold text-xs uppercase">Pin to Home Page</button>
-                <div id="diaryList" class="text-xs opacity-70 mt-4 italic"></div>
+                <textarea id="diaryIn" rows="6" placeholder="Write your diary or a motivation quote..."></textarea>
+                <button onclick="pinItem('DIARY', document.getElementById('diaryIn').value)" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase shadow-lg">Pin to Top</button>
             </div>
         </div>
 
-        <nav class="fixed bottom-0 left-0 right-0 bg-card border-t border-slate-200 dark:border-slate-800 flex justify-around shadow-2xl p-1">
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-1 shadow-lg">
             <button onclick="showScreen('tasks')" class="nav-btn active" id="btn-tasks"><span>📋</span>Tasks</button>
             <button onclick="showScreen('countdown')" class="nav-btn" id="btn-countdown"><span>⏳</span>Exams</button>
             <button onclick="showScreen('events')" class="nav-btn" id="btn-events"><span>📅</span>Events</button>
@@ -80,7 +85,7 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('oppa_db')) || { tasks: {}, exams: [], events: {}, diary: "" };
+        let db = JSON.parse(localStorage.getItem('oppa_db')) || { tasks: {}, exams: [], events: {}, pin: null };
         let curDate = new Date();
         let selDate = new Date().toISOString().split('T')[0];
 
@@ -92,13 +97,11 @@
             document.getElementById('screen-'+s).classList.remove('hidden');
             document.getElementById('btn-'+s).classList.add('active');
             document.getElementById('viewTitle').innerText = s;
-            if(s === 'tasks' || s === 'events') renderData();
-            if(s === 'countdown') renderCD();
+            renderData();
         }
 
         function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
             const y = curDate.getFullYear(), m = curDate.getMonth();
             document.getElementById('monthLabel').innerText = new Intl.DateTimeFormat('en-US', {month:'long', year:'numeric'}).format(curDate);
             const start = new Date(y, m, 1).getDay(), days = new Date(y, m+1, 0).getDate();
@@ -117,28 +120,48 @@
         }
 
         function renderData() {
-            const tList = document.getElementById('taskList'), eList = document.getElementById('evList');
-            tList.innerHTML = ''; eList.innerHTML = '';
+            const tList = document.getElementById('taskList'), eList = document.getElementById('evList'), cList = document.getElementById('cdList');
+            tList.innerHTML = ''; eList.innerHTML = ''; cList.innerHTML = '';
+            
             (db.tasks[selDate] || []).forEach((t, i) => {
-                tList.innerHTML += `<div class="flex items-start gap-3 p-2 bg-slate-100 dark:bg-slate-800 rounded">
-                    <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
-                    <p class="text-sm ${t.done?'line-through opacity-50':''}">${t.text}</p>
+                let subHtml = (t.subs || []).map((s, si) => `
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="cube-checkbox scale-75 ${s.done?'checked':''}" onclick="toggleS(${i},${si})"></div>
+                        <p class="text-[11px] ${s.done?'line-through opacity-40':''}">${s.text}</p>
+                    </div>`).join('');
+
+                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
+                        <div class="flex-grow">
+                            <p class="text-sm font-bold ${t.done?'line-through opacity-40':''}">${t.text}</p>
+                            <div class="sub-task-container">${subHtml}
+                                <input type="text" placeholder="+ Sub-task" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6">
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="pinItem('TASK', '${t.text}')" class="text-[9px] text-blue-500 font-bold">PIN</button>
+                            <button onclick="delT(${i})" class="text-[9px] text-slate-400">DEL</button>
+                        </div>
+                    </div>
                 </div>`;
             });
-            (db.events[selDate] || []).forEach((e, i) => {
-                eList.innerHTML += `<div class="p-2 border-l-4 border-blue-500 bg-slate-100 dark:bg-slate-800 text-xs">${e}</div>`;
-            });
-        }
 
-        function renderCD() {
-            const list = document.getElementById('cdList'); list.innerHTML = '';
+            (db.events[selDate] || []).forEach((e, i) => {
+                eList.innerHTML += `<div class="flex justify-between p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r-xl">
+                    <span class="text-xs font-bold">${e}</span>
+                    <button onclick="pinItem('EVENT', '${e}')" class="text-[10px] text-blue-500 font-bold">PIN</button>
+                </div>`;
+            });
+
             db.exams.forEach((ex, i) => {
                 const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
-                list.innerHTML += `<div class="flex justify-between p-3 bg-red-900/20 border border-red-900/30 rounded text-xs">
-                    <span class="font-bold">${ex.name}</span>
-                    <span class="text-red-500 font-black">${diff} DAYS LEFT</span>
+                cList.innerHTML += `<div class="flex justify-between items-center p-3 bg-red-50 border border-red-100 rounded-xl">
+                    <div><p class="text-xs font-bold">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div>
+                    <button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days Left')" class="text-[10px] text-blue-500 font-bold">PIN</button>
                 </div>`;
             });
+            renderPin();
         }
 
         function handleKey(e, type) {
@@ -154,25 +177,32 @@
             }
         }
 
+        function handleSub(e, i) {
+            if(e.key === 'Enter' && e.target.value) {
+                db.tasks[selDate][i].subs.push({text: e.target.value, done: false});
+                e.target.value = ''; save();
+            }
+        }
+
         function addCD() {
             const name = document.getElementById('cdName').value, date = document.getElementById('cdDate').value;
-            if(name && date) { db.exams.push({name, date}); save(); renderCD(); }
+            if(name && date) { db.exams.push({name, date}); save(); showScreen('countdown'); }
         }
 
-        function pinQuote() {
-            db.diary = document.getElementById('diaryIn').value;
-            document.getElementById('pinnedSection').classList.remove('hidden');
-            document.getElementById('pinnedText').innerText = db.diary;
-            save();
+        function pinItem(type, content) { db.pin = { type, content }; save(); renderPin(); }
+        function renderPin() {
+            const c = document.getElementById('pinContainer');
+            if(db.pin) { c.classList.remove('hidden'); document.getElementById('pinLabel').innerText = db.pin.type; document.getElementById('pinContent').innerText = db.pin.content; }
+            else { c.classList.add('hidden'); }
         }
-
+        function clearPin() { db.pin = null; save(); renderPin(); }
         function toggleT(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); renderCalendar(); }
+        function toggleS(ti, si) { db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
+        function delT(i) { db.tasks[selDate].splice(i,1); save(); renderCalendar(); }
         function save() { localStorage.setItem('oppa_db', JSON.stringify(db)); renderData(); }
         function changeMonth(o) { curDate.setMonth(curDate.getMonth() + o); renderCalendar(); }
-        function toggleTheme() { document.body.classList.toggle('dark'); }
 
         renderCalendar(); showScreen('tasks');
-        if(db.diary) { document.getElementById('pinnedSection').classList.remove('hidden'); document.getElementById('pinnedText').innerText = db.diary; }
     </script>
 </body>
 </html>
