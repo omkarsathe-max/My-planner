@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Ledger | Swipe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Ledger | Ultimate</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -12,18 +12,16 @@
         .cube-checkbox { width: 20px; height: 20px; border: 2px solid #64748b; cursor: pointer; border-radius: 4px; position: relative; flex-shrink: 0; }
         .checked { background-color: #10b981; border-color: #10b981; }
         .checked::after { content: '✔'; color: white; position: absolute; left: 3px; top: -2px; font-size: 12px; }
-        .nav-btn { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; opacity: 0.4; color: #64748b; transition: all 0.2s; }
-        .nav-btn.active { opacity: 1; color: #3b82f6; transform: translateY(-2px); }
+        .nav-btn { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; opacity: 0.4; color: #64748b; }
+        .nav-btn.active { opacity: 1; color: #3b82f6; }
         .calendar-day { min-height: 45px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid transparent; background: #f1f5f9; position: relative; }
         .active-day { border: 2px solid #3b82f6 !important; background: white; }
         .today-highlight { background-color: #3b82f6 !important; color: white !important; font-weight: bold; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); }
         .dot { width: 4px; height: 4px; background: #3b82f6; border-radius: 50%; position: absolute; bottom: 4px; }
         .dark-dot { background: white; }
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
-        .action-btn { font-size: 14px; opacity: 0.6; }
-        
-        /* SWIPE ANIMATION */
-        #mainContent { transition: transform 0.3s ease-out, opacity 0.2s; touch-action: pan-y; }
+        .action-btn { font-size: 14px; opacity: 0.6; transition: opacity 0.2s; }
+        #calendarContainer { touch-action: pan-y; } /* Allow swiping horizontal but keep vertical scroll */
     </style>
 </head>
 <body class="p-4 pb-24">
@@ -39,7 +37,7 @@
             <button onclick="clearPin()" class="text-[9px] mt-2 underline opacity-70">Remove Pin</button>
         </div>
 
-        <div class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
+        <div id="calendarContainer" class="bg-card p-3 rounded-2xl mb-6 shadow-sm">
             <div class="flex justify-between items-center mb-3">
                 <button onclick="changeMonth(-1)" class="p-1 font-bold">◀</button>
                 <div id="monthLabel" class="font-bold text-sm uppercase tracking-widest text-slate-500 text-center"></div>
@@ -49,28 +47,25 @@
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+            <p class="text-[8px] text-center mt-2 opacity-30 italic">Swipe left/right to change month</p>
         </div>
 
         <div id="mainContent" class="bg-card p-5 rounded-2xl shadow-sm min-h-[350px]">
             <h2 id="viewTitle" class="text-xs font-black text-blue-600 uppercase mb-4 tracking-tighter">Tasks</h2>
-            
             <div id="screen-tasks">
                 <input type="text" id="taskIn" placeholder="+ New Task (Enter)" onkeypress="handleKey(event, 'task')" class="mb-4">
                 <div id="taskList" class="space-y-4"></div>
             </div>
-
             <div id="screen-countdown" class="hidden space-y-4">
                 <input type="text" id="cdName" placeholder="Exam Name">
                 <input type="date" id="cdDate">
                 <button onclick="addCD()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase">Add Exam</button>
                 <div id="cdList" class="space-y-3"></div>
             </div>
-
             <div id="screen-events" class="hidden space-y-4">
                 <input type="text" id="evIn" placeholder="+ New Event (Enter)" onkeypress="handleKey(event, 'event')">
                 <div id="evList" class="space-y-3"></div>
             </div>
-
             <div id="screen-diary" class="hidden space-y-4">
                 <textarea id="diaryIn" rows="4" placeholder="Note or Quote..." class="mb-2"></textarea>
                 <div class="flex gap-2">
@@ -94,38 +89,28 @@
         let db = JSON.parse(localStorage.getItem(KEY)) || { tasks: {}, exams: [], events: {}, pin: null, diaries: [] };
         let curDate = new Date();
         let selDate = new Date().toISOString().split('T')[0];
-        
+
         // SWIPE LOGIC
         let touchstartX = 0;
         let touchendX = 0;
-        const screens = ['tasks', 'countdown', 'events', 'diary'];
-        let currentIdx = 0;
+        const calendarContainer = document.getElementById('calendarContainer');
 
-        function checkDirection() {
-            if (touchendX < touchstartX - 70) moveScreen(1); // Swipe Left -> Next
-            if (touchendX > touchstartX + 70) moveScreen(-1); // Swipe Right -> Prev
-        }
-
-        function moveScreen(dir) {
-            let next = currentIdx + dir;
-            if (next >= 0 && next < screens.length) {
-                currentIdx = next;
-                showScreen(screens[currentIdx]);
-            }
-        }
-
-        const contentArea = document.getElementById('mainContent');
-        contentArea.addEventListener('touchstart', e => touchstartX = e.changedTouches[0].screenX);
-        contentArea.addEventListener('touchend', e => {
+        calendarContainer.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, false);
+        calendarContainer.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX;
-            checkDirection();
-        });
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            const threshold = 50; // Minimum distance for a swipe
+            if (touchendX < touchstartX - threshold) changeMonth(1); // Swipe Left -> Next
+            if (touchendX > touchstartX + threshold) changeMonth(-1); // Swipe Right -> Prev
+        }
 
         function save() { localStorage.setItem(KEY, JSON.stringify(db)); renderData(); renderCalendar(); }
 
         function showScreen(s) {
-            currentIdx = screens.indexOf(s);
-            screens.forEach(id => {
+            ['tasks', 'countdown', 'events', 'diary'].forEach(id => {
                 document.getElementById('screen-'+id).classList.add('hidden');
                 document.getElementById('btn-'+id).classList.remove('active');
             });
@@ -163,21 +148,59 @@
             tList.innerHTML = ''; eList.innerHTML = ''; cList.innerHTML = ''; dList.innerHTML = '';
             
             (db.tasks[selDate] || []).forEach((t, i) => {
-                let subs = (t.subs || []).map((s, si) => `<div class="flex items-center gap-2 mb-1"><div class="cube-checkbox scale-75 ${s.done?'checked':''}" onclick="toggleS(${i},${si})"></div><p class="text-[11px] flex-grow ${s.done?'line-through opacity-40':''}">${s.text}</p><button onclick="editS(${i},${si})" class="action-btn">📝</button></div>`).join('');
-                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600"><div class="flex items-start gap-3"><div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div><div class="flex-grow"><p class="text-sm font-bold ${t.done?'line-through opacity-40':''}">${t.text}</p><div class="ml-4 mt-2">${subs}<input type="text" placeholder="+ Step" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6 bg-white"></div></div><div class="flex flex-col gap-2"><button onclick="pinItem('TASK', '${t.text}')" class="text-[9px] font-bold text-blue-600">PIN</button><button onclick="editT(${i})" class="action-btn">📝</button><button onclick="delT(${i})" class="action-btn">🗑️</button></div></div></div>`;
+                let subs = (t.subs || []).map((s, si) => `
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="cube-checkbox scale-75 ${s.done?'checked':''}" onclick="toggleS(${i},${si})"></div>
+                        <p class="text-[11px] flex-grow ${s.done?'line-through opacity-40':''}">${s.text}</p>
+                        <button onclick="editS(${i},${si})" class="action-btn">📝</button>
+                    </div>`).join('');
+                tList.innerHTML += `<div class="p-3 bg-slate-50 rounded-xl border-l-4 border-blue-600">
+                    <div class="flex items-start gap-3">
+                        <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleT(${i})"></div>
+                        <div class="flex-grow">
+                            <p class="text-sm font-bold ${t.done?'line-through opacity-40':''}">${t.text}</p>
+                            <div class="ml-4 mt-2">${subs}
+                                <input type="text" placeholder="+ Step" onkeypress="handleSub(event, ${i})" class="mt-2 text-[10px] p-1 h-6 bg-white">
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="pinItem('TASK', '${t.text}')" class="text-[9px] font-bold text-blue-600">PIN</button>
+                            <button onclick="editT(${i})" class="action-btn">📝</button>
+                            <button onclick="delT(${i})" class="action-btn">🗑️</button>
+                        </div>
+                    </div>
+                </div>`;
             });
 
             db.exams.forEach((ex, i) => {
                 const diff = Math.ceil((new Date(ex.date) - new Date()) / 86400000);
-                cList.innerHTML += `<div class="p-3 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center"><div><p class="text-xs font-bold uppercase">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div><div class="flex gap-3"><button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days')" class="text-[9px] font-bold text-blue-600">PIN</button><button onclick="editCD(${i})" class="action-btn">📝</button><button onclick="delCD(${i})" class="action-btn">🗑️</button></div></div>`;
+                cList.innerHTML += `<div class="p-3 bg-red-50 border border-red-100 rounded-xl flex justify-between items-center">
+                    <div><p class="text-xs font-bold uppercase">${ex.name}</p><p class="text-[10px] text-red-600 font-black">${diff} DAYS LEFT</p></div>
+                    <div class="flex gap-3">
+                        <button onclick="pinItem('EXAM', '${ex.name}: ${diff} Days')" class="text-[9px] font-bold text-blue-600">PIN</button>
+                        <button onclick="editCD(${i})" class="action-btn">📝</button>
+                        <button onclick="delCD(${i})" class="action-btn">🗑️</button>
+                    </div>
+                </div>`;
             });
 
             (db.events[selDate] || []).forEach((e, i) => {
-                eList.innerHTML += `<div class="flex justify-between p-3 bg-blue-50 border-l-4 border-blue-500 rounded-xl"><span class="text-xs font-bold uppercase">${e}</span><div class="flex gap-2"><button onclick="editE(${i})" class="action-btn">📝</button><button onclick="delE(${i})" class="action-btn">🗑️</button></div></div>`;
+                eList.innerHTML += `<div class="flex justify-between p-3 bg-blue-50 border-l-4 border-blue-500 rounded-xl">
+                    <span class="text-xs font-bold uppercase">${e}</span>
+                    <div class="flex gap-2">
+                        <button onclick="editE(${i})" class="action-btn">📝</button>
+                        <button onclick="delE(${i})" class="action-btn">🗑️</button>
+                    </div>
+                </div>`;
             });
 
             db.diaries.forEach((d, i) => {
-                dList.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border border-slate-200"><p class="text-xs italic">"${d}"</p><div class="flex justify-end gap-3 mt-2"><button onclick="editD(${i})" class="action-btn">📝</button><button onclick="delD(${i})" class="action-btn">🗑️</button></div></div>`;
+                dList.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border border-slate-200"><p class="text-xs italic">"${d}"</p>
+                    <div class="flex justify-end gap-3 mt-2">
+                        <button onclick="editD(${i})" class="action-btn">📝</button>
+                        <button onclick="delD(${i})" class="action-btn">🗑️</button>
+                    </div>
+                </div>`;
             });
             renderPin();
         }
@@ -215,9 +238,9 @@
             input.onkeypress = (e) => { if(e.key === 'Enter') input.blur(); };
         }
         function editD(i) {
-            const p = document.querySelectorAll('#diaryList > div')[i].querySelector('p');
+            const p = document.getElementById('diaryList').children[i].querySelector('p');
             const old = db.diaries[i];
-            p.innerHTML = `<input type="text" id="editDIn" value='${old}' class="p-0 text-xs h-6'>`;
+            p.innerHTML = `<input type="text" id="editDIn" value='${old}' class="p-0 text-xs h-6">`;
             const input = document.getElementById('editDIn'); input.focus();
             input.onblur = () => { if(input.value) db.diaries[i] = input.value; save(); };
             input.onkeypress = (e) => { if(e.key === 'Enter') input.blur(); };
@@ -227,12 +250,10 @@
         function handleSub(e, i) { if(e.key === 'Enter' && e.target.value) { db.tasks[selDate][i].subs.push({text:e.target.value, done:false}); e.target.value=''; save(); } }
         function addCD() { const n=document.getElementById('cdName').value, d=document.getElementById('cdDate').value; if(n && d){ db.exams.push({name:n, date:d}); save(); } }
         function saveDiary() { const v=document.getElementById('diaryIn').value; if(v){ db.diaries.push(v); document.getElementById('diaryIn').value=''; save(); } }
-
         function delT(i){ if(confirm("Delete task?")){ db.tasks[selDate].splice(i,1); save(); } }
         function delE(i){ if(confirm("Delete event?")){ db.events[selDate].splice(i,1); save(); } }
         function delCD(i){ if(confirm("Delete exam?")){ db.exams.splice(i,1); save(); } }
         function delD(i){ if(confirm("Delete note?")){ db.diaries.splice(i,1); save(); } }
-
         function toggleT(i){ db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
         function toggleS(ti, si){ db.tasks[selDate][ti].subs[si].done = !db.tasks[selDate][ti].subs[si].done; save(); }
         function pinItem(type, content) { db.pin = { type, content }; save(); }
