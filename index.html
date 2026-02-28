@@ -26,11 +26,10 @@
         input, textarea { width: 100%; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; outline: none; font-size: 14px; }
         .dashboard-section { border-left: 4px solid #3b82f6; background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 8px; }
         .del-btn { color: #ef4444; font-size: 20px; font-weight: bold; line-height: 1; margin-left: 10px; }
-        .edit-btn { color: #3b82f6; font-size: 11px; font-weight: bold; text-transform: uppercase; border: 1px solid #3b82f6; padding: 2px 4px; border-radius: 4px; }
+        .edit-btn, .sub-btn { color: #3b82f6; font-size: 11px; font-weight: bold; text-transform: uppercase; border: 1px solid #3b82f6; padding: 2px 4px; border-radius: 4px; }
         .edit-input { background: white; border: 1px solid #3b82f6; padding: 2px 4px; border-radius: 4px; width: 100%; }
         #calendarContainer { touch-action: pan-y; }
-        .undo-redo-container { position: absolute; top: 16px; right: 16px; display: flex; gap: 12px; }
-        .history-btn { font-size: 20px; cursor: pointer; opacity: 0.6; }
+        .subtask-row { margin-left: 32px; margin-top: 4px; border-left: 2px solid #e2e8f0; padding-left: 8px; }
     </style>
 </head>
 <body class="p-4 pb-24">
@@ -39,11 +38,6 @@
             <img src="https://cdn-icons-png.flaticon.com/512/2098/2098402.png" class="w-8 h-8 mr-2">
             <h1 class="text-xl font-bold italic tracking-tighter uppercase text-slate-800">The Ledger</h1>
         </header>
-
-        <div class="undo-redo-container">
-            <button onclick="undo()" class="history-btn">↺</button>
-            <button onclick="redo()" class="history-btn">↻</button>
-        </div>
 
         <div id="pinContainer" class="hidden mb-6 bg-blue-600 text-white p-4 rounded-xl shadow-lg text-center">
             <p id="pinLabel" class="text-[10px] uppercase font-black opacity-80 mb-1"></p>
@@ -121,27 +115,13 @@
         let curDate = new Date();
         let selDate = new Date().toISOString().split('T')[0];
         let activeTab = 'tasks';
-        let history = [JSON.stringify(db)];
-        let historyIndex = 0;
-
-        function recordAction() {
-            const snap = JSON.stringify(db);
-            if (snap === history[historyIndex]) return;
-            history = history.slice(0, historyIndex + 1);
-            history.push(snap);
-            if (history.length > 3) history.shift();
-            historyIndex = history.length - 1;
-        }
-
-        function undo() { if (historyIndex > 0) { historyIndex--; db = JSON.parse(history[historyIndex]); save(false); } }
-        function redo() { if (historyIndex < history.length - 1) { historyIndex++; db = JSON.parse(history[historyIndex]); save(false); } }
 
         let tsX = 0; let teX = 0;
         const calArea = document.getElementById('calendarContainer');
         calArea.addEventListener('touchstart', e => { tsX = e.changedTouches[0].screenX; }, false);
         calArea.addEventListener('touchend', e => { teX = e.changedTouches[0].screenX; if(teX < tsX - 50) changeMonth(1); if(teX > tsX + 50) changeMonth(-1); }, false);
 
-        function save(record = true) { if(record) recordAction(); localStorage.setItem(KEY, JSON.stringify(db)); renderCalendar(); updateDashboard(); if(activeTab === 'intel') renderIntel(); }
+        function save() { localStorage.setItem(KEY, JSON.stringify(db)); renderCalendar(); updateDashboard(); if(activeTab === 'intel') renderIntel(); }
 
         function showScreen(s) {
             activeTab = s;
@@ -193,9 +173,29 @@
                 <div class="flex items-center gap-3"><button onclick="pinItem('EXAM','${ex.name}','${ex.date}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditCD('${ex.name}','${ex.date}', this)" class="edit-btn">EDIT</button><button onclick="delExam('${ex.name}','${ex.date}')" class="del-btn">×</button></div></div>`;
             });
             (db.tasks[selDate] || []).forEach((t, i) => {
-                container.innerHTML += `<div class="dashboard-section flex items-center gap-3"><div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleTask(${i})"></div>
-                <p class="flex-grow text-sm ${t.done?'line-through opacity-40':''}">${t.text}</p>
-                <div class="flex items-center gap-3"><button onclick="pinItem('TASK','${t.text}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditTask(${i}, this)" class="edit-btn">EDIT</button><button onclick="delTask(${i})" class="del-btn">×</button></div></div>`;
+                let taskHTML = `<div class="dashboard-section flex flex-col">
+                    <div class="flex items-center gap-3">
+                        <div class="cube-checkbox ${t.done?'checked':''}" onclick="toggleTask(${i})"></div>
+                        <p class="flex-grow text-sm ${t.done?'line-through opacity-40':''}">${t.text}</p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="pinItem('TASK','${t.text}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button>
+                            <button onclick="addSubtask(${i})" class="sub-btn">SUB</button>
+                            <button onclick="inlineEditTask(${i}, this)" class="edit-btn">EDIT</button>
+                            <button onclick="delTask(${i})" class="del-btn">×</button>
+                        </div>
+                    </div>`;
+                
+                if (t.subtasks && t.subtasks.length > 0) {
+                    t.subtasks.forEach((st, si) => {
+                        taskHTML += `<div class="subtask-row flex items-center gap-3">
+                            <div class="cube-checkbox ${st.done?'checked':''}" style="width:16px; height:16px;" onclick="toggleSubtask(${i}, ${si})"></div>
+                            <p class="flex-grow text-xs ${st.done?'line-through opacity-40':''}">${st.text}</p>
+                            <button onclick="delSubtask(${i}, ${si})" class="text-red-400 font-bold ml-2">×</button>
+                        </div>`;
+                    });
+                }
+                taskHTML += `</div>`;
+                container.innerHTML += taskHTML;
             });
             (db.events[selDate] || []).forEach((e, i) => {
                 container.innerHTML += `<div class="dashboard-section border-l-green-500 bg-green-50 flex justify-between items-center"><span class="text-sm">${e}</span>
@@ -207,9 +207,12 @@
 
         function focusAtEnd(el) { el.focus(); const val = el.value; el.value = ''; el.value = val; }
         function inlineEditTask(i, btn) { const p = btn.parentElement.parentElement.querySelector('p'); const old = db.tasks[selDate][i].text; p.innerHTML = `<input type="text" class="edit-input" value="${old}" id="eTask">`; const input = document.getElementById('eTask'); focusAtEnd(input); input.onblur = () => { if(input.value) db.tasks[selDate][i].text = input.value; save(); }; input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); }; }
+        function addSubtask(i) { const txt = prompt("Enter subtask:"); if(txt) { if(!db.tasks[selDate][i].subtasks) db.tasks[selDate][i].subtasks = []; db.tasks[selDate][i].subtasks.push({text: txt, done: false}); save(); } }
+        function toggleSubtask(ti, si) { db.tasks[selDate][ti].subtasks[si].done = !db.tasks[selDate][ti].subtasks[si].done; save(); }
+        function delSubtask(ti, si) { db.tasks[selDate][ti].subtasks.splice(si, 1); save(); }
         function inlineEditEvent(i, btn) { const p = btn.parentElement.parentElement.querySelector('span'); const old = db.events[selDate][i]; p.innerHTML = `<input type="text" class="edit-input" value="${old}" id="eEvent">`; const input = document.getElementById('eEvent'); focusAtEnd(input); input.onblur = () => { if(input.value) db.events[selDate][i] = input.value; save(); }; input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); }; }
         function inlineEditCD(name, date, btn) { const p = btn.parentElement.parentElement.querySelector('p'); p.innerHTML = `<input type="text" class="edit-input" value="${name}" id="eExam">`; const input = document.getElementById('eExam'); focusAtEnd(input); input.onblur = () => { if(input.value) db.exams.find(ex=>ex.name===name&&ex.date===date).name = input.value; save(); }; input.onkeypress = (e) => { if(e.key==='Enter') input.blur(); }; }
-        function handleEntry(e, type) { if(e.key==='Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false}); } else if(type==='exam'){ db.exams.push({name:e.target.value, date:selDate}); } else if(type==='event'){ if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
+        function handleEntry(e, type) { if(e.key==='Enter' && e.target.value) { if(type==='task'){ if(!db.tasks[selDate])db.tasks[selDate]=[]; db.tasks[selDate].push({text:e.target.value, done:false, subtasks: []}); } else if(type==='exam'){ db.exams.push({name:e.target.value, date:selDate}); } else if(type==='event'){ if(!db.events[selDate])db.events[selDate]=[]; db.events[selDate].push(e.target.value); } e.target.value=''; save(); } }
         function saveDiary() { db.diaries[selDate] = document.getElementById('diaryBox').value; save(); }
         function delTask(i) { db.tasks[selDate].splice(i,1); save(); }
         function delExam(n, d) { db.exams = db.exams.filter(ex => !(ex.name===n && ex.date===d)); save(); }
@@ -218,9 +221,29 @@
         function toggleTask(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
         function renderIntel() { const today=new Date().toISOString().split('T')[0]; let tc=0; Object.values(db.tasks).forEach(d=>d.forEach(t=>{if(!t.done)tc++;})); document.getElementById('statTasks').innerText=tc; document.getElementById('statExams').innerText=db.exams.filter(ex=>ex.date>=today).length; let ec=0; Object.values(db.events).forEach(d=>ec+=d.length); document.getElementById('statEvents').innerText=ec; document.getElementById('statDiaries').innerText=Object.keys(db.diaries).length; }
         function showIntelDetail(type) { const list = document.getElementById('intelDetailList'); list.innerHTML = `<h4 class="text-[10px] font-black uppercase text-slate-500 mb-2">${type} List</h4>`; if(type==='tasks') Object.keys(db.tasks).forEach(d=>db.tasks[d].forEach(t=>list.innerHTML += `<div class="bg-white p-2 text-xs border rounded mb-1 flex justify-between"><span>${t.text}</span><span class="opacity-40">${d}</span></div>`)); else if(type==='exams') db.exams.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex=>list.innerHTML += `<div class="bg-red-50 p-2 text-xs border border-red-100 rounded mb-1 flex justify-between"><span>${ex.name}</span><span class="font-bold">${ex.date}</span></div>`); else if(type==='events') Object.keys(db.events).forEach(d=>db.events[d].forEach(e=>list.innerHTML += `<div class="bg-green-50 p-2 text-xs border border-green-100 rounded mb-1 flex justify-between"><span>${e}</span><span class="opacity-40">${d}</span></div>`)); else if(type==='diary') Object.keys(db.diaries).forEach(d=>list.innerHTML += `<div class="bg-yellow-50 p-2 text-xs border border-yellow-100 rounded mb-1"><b>${d}:</b> ${db.diaries[d]}</div>`); }
-        function pinItem(t,c,d) { const m=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; const dt=new Date(d); const diff = Math.ceil((dt - new Date()) / 86400000); const countdownText = diff >= 0 ? `: ${diff} DAYS LEFT` : ''; db.pin={type:`${m[dt.getMonth()]} ${dt.getDate()} - ${t}${countdownText}`, content:c}; save(); }
+        
+        function pinItem(t,c,d) { 
+            db.pin = { typeTag: t, content: c, targetDate: d }; 
+            save(); 
+        }
+
+        function renderPin() { 
+            const c=document.getElementById('pinContainer'); 
+            if(db.pin){ 
+                c.classList.remove('hidden'); 
+                const m=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]; 
+                const dt=new Date(db.pin.targetDate);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const diff = Math.ceil((dt - today) / 86400000);
+                const countdownText = diff >= 0 ? `: ${diff} DAYS LEFT` : ' (EXPIRED)';
+                
+                document.getElementById('pinLabel').innerText = `${m[dt.getMonth()]} ${dt.getDate()} - ${db.pin.typeTag}${countdownText}`; 
+                document.getElementById('pinContent').innerText = db.pin.content; 
+            } else c.classList.add('hidden'); 
+        }
+
         function clearPin() { db.pin=null; save(); }
-        function renderPin() { const c=document.getElementById('pinContainer'); if(db.pin){ c.classList.remove('hidden'); document.getElementById('pinLabel').innerText=db.pin.type; document.getElementById('pinContent').innerText=db.pin.content; } else c.classList.add('hidden'); }
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
         function downloadReadableData() { let doc = "THE LEDGER: ACADEMIC MISSION LIST\n\nEXAMS:\n" + db.exams.map(ex => `[${ex.date}] ${ex.name}`).join("\n") + "\n\nTASKS:\n" + Object.keys(db.tasks).map(d => db.tasks[d].filter(t=>!t.done).map(t => `[${d}] ${t.text}`).join("\n")).join("\n"); const b=new Blob([doc], {type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`TheLedger_List.txt`; a.click(); }
         renderCalendar(); showScreen('tasks');
