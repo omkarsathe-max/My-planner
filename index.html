@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Ledger | Smart Hub</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
-    <script src="https://cdn-tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .bg-card { background-color: white; border: 1px solid #e2e8f0; }
@@ -246,31 +246,7 @@
         }
 
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
-        
-        function downloadReadableData() {
-            let rows = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1"><tr><th colspan="3" style="font-size: 16px; background-color: #f1f5f9;"><b>THE LEDGER: ACADEMIC TIMETABLE</b></th></tr><tr><th style="background-color: #e2e8f0;">Type</th><th style="background-color: #e2e8f0;">Date</th><th style="background-color: #e2e8f0;">Details</th></tr>`;
-            
-            if(db.exams.length === 0) rows += `<tr><td>Exam</td><td colspan="2">No exams scheduled</td></tr>`;
-            else db.exams.forEach(ex => rows += `<tr><td>Exam</td><td>${ex.date}</td><td>${ex.name}</td></tr>`);
-            
-            let hasTasks = false;
-            Object.keys(db.tasks).forEach(d => {
-                db.tasks[d].filter(t=>!t.done).forEach(t => {
-                    hasTasks = true;
-                    rows += `<tr><td>Task</td><td>${d}</td><td>${t.text}</td></tr>`;
-                });
-            });
-            if(!hasTasks) rows += `<tr><td>Task</td><td colspan="2">No pending tasks</td></tr>`;
-            
-            rows += `</table></body></html>`;
-            
-            const b = new Blob(['\ufeff', rows], {type: 'application/vnd.ms-excel'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(b);
-            a.download = 'TheLedger_Export.xls';
-            a.click();
-        }
-        
+        function downloadReadableData() { let doc = "THE LEDGER: ACADEMIC MISSION LIST\n\nEXAMS:\n" + db.exams.map(ex => `[${ex.date}] ${ex.name}`).join("\n") + "\n\nTASKS:\n" + Object.keys(db.tasks).map(d => db.tasks[d].filter(t=>!t.done).map(t => `[${d}] ${t.text}`).join("\n")).join("\n"); const b=new Blob([doc], {type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`TheLedger_List.txt`; a.click(); }
         renderCalendar(); showScreen('tasks');
     </script>
 </body>
