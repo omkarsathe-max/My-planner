@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Ledger | Smart Hub</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn-tailwindcss.com"></script>
     <style>
         body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .bg-card { background-color: white; border: 1px solid #e2e8f0; }
@@ -203,7 +203,7 @@
                 container.innerHTML += `<div class="dashboard-section border-l-green-500 bg-green-50 flex justify-between items-center"><span class="text-sm">${e}</span>
                 <div class="flex items-center gap-3"><button onclick="pinItem('EVENT','${e}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditEvent(${i}, this)" class="edit-btn">EDIT</button><button onclick="delEvent(${i})" class="del-btn">×</button></div></div>`;
             });
-            if(db.diaries[selDate]) container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p><button onclick="delDiary()" class="del-btn">×</button></div>`;
+            if(db.diaries[selDate]) container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p><button onclick="delDiary()" class="del-btn">×</button></div></div>`;
             renderPin();
         }
 
@@ -247,7 +247,25 @@
 
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
         
-        function downloadReadableData() { let examRows = db.exams.map(ex => `<tr><td>${ex.date}</td><td>${ex.name}</td></tr>`).join(""); let taskRows = Object.keys(db.tasks).map(d => db.tasks[d].filter(t=>!t.done).map(t => `<tr><td>${d}</td><td>${t.text}</td></tr>`).join("")).join(""); let htmlDoc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>The Ledger Export</title><style>body { font-family: Arial, sans-serif; background: white; color: black; padding: 20px; } h1 { text-align: center; color: #1e293b; text-transform: uppercase; font-size: 20px; } h2 { color: #3b82f6; font-size: 16px; margin-top: 20px; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; } table { border-collapse: collapse; width: 100%; margin-bottom: 20px; } th, td { border: 1px solid #000; padding: 10px; text-align: left; font-size: 14px; } th { background-color: #f1f5f9; font-weight: bold; }</style></head><body><h1>The Ledger: Academic Mission List</h1><h2>Exams Timetable</h2><table><tr><th width="30%">Date</th><th>Exam Name</th></tr>${examRows || '<tr><td colspan="2">No exams scheduled</td></tr>'}</table><h2>Pending Tasks</h2><table><tr><th width="30%">Date</th><th>Task Details</th></tr>${taskRows || '<tr><td colspan="2">No pending tasks</td></tr>'}</table></body></html>`; const b = new Blob(['\ufeff', htmlDoc], {type:'application/msword'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'TheLedger_Document.doc'; a.click(); }
+        function downloadReadableData() { 
+            let csv = "EXAMS TIMETABLE\nDate,Exam Name\n"; 
+            if(db.exams.length === 0) csv += "No exams scheduled,\n"; 
+            else db.exams.forEach(ex => csv += `${ex.date},"${ex.name.replace(/"/g, '""')}"\n`); 
+            
+            csv += "\nPENDING TASKS\nDate,Task Details\n"; 
+            let hasTasks = false; 
+            Object.keys(db.tasks).forEach(d => db.tasks[d].filter(t=>!t.done).forEach(t => { 
+                hasTasks = true; 
+                csv += `${d},"${t.text.replace(/"/g, '""')}"\n`; 
+            })); 
+            if(!hasTasks) csv += "No pending tasks,\n"; 
+            
+            const b = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'}); 
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(b); 
+            a.download = 'TheLedger_Export.csv'; 
+            a.click(); 
+        }
         
         renderCalendar(); showScreen('tasks');
     </script>
