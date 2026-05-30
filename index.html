@@ -203,7 +203,7 @@
                 container.innerHTML += `<div class="dashboard-section border-l-green-500 bg-green-50 flex justify-between items-center"><span class="text-sm">${e}</span>
                 <div class="flex items-center gap-3"><button onclick="pinItem('EVENT','${e}','${selDate}')" class="text-[9px] font-bold text-blue-500">PIN</button><button onclick="inlineEditEvent(${i}, this)" class="edit-btn">EDIT</button><button onclick="delEvent(${i})" class="del-btn">×</button></div></div>`;
             });
-            if(db.diaries[selDate]) container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p><button onclick="delDiary()" class="del-btn">×</button></div></div>`;
+            if(db.diaries[selDate]) container.innerHTML += `<div class="dashboard-section border-l-yellow-500 bg-yellow-50 flex justify-between items-center"><p class="text-xs italic">"${db.diaries[selDate]}"</p><button onclick="delDiary()" class="del-btn">×</button></div>`;
             renderPin();
         }
 
@@ -247,24 +247,28 @@
 
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
         
-        function downloadReadableData() { 
-            let csv = "EXAMS TIMETABLE\nDate,Exam Name\n"; 
-            if(db.exams.length === 0) csv += "No exams scheduled,\n"; 
-            else db.exams.forEach(ex => csv += `${ex.date},"${ex.name.replace(/"/g, '""')}"\n`); 
+        function downloadReadableData() {
+            let rows = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1"><tr><th colspan="3" style="font-size: 16px; background-color: #f1f5f9;"><b>THE LEDGER: ACADEMIC TIMETABLE</b></th></tr><tr><th style="background-color: #e2e8f0;">Type</th><th style="background-color: #e2e8f0;">Date</th><th style="background-color: #e2e8f0;">Details</th></tr>`;
             
-            csv += "\nPENDING TASKS\nDate,Task Details\n"; 
-            let hasTasks = false; 
-            Object.keys(db.tasks).forEach(d => db.tasks[d].filter(t=>!t.done).forEach(t => { 
-                hasTasks = true; 
-                csv += `${d},"${t.text.replace(/"/g, '""')}"\n`; 
-            })); 
-            if(!hasTasks) csv += "No pending tasks,\n"; 
+            if(db.exams.length === 0) rows += `<tr><td>Exam</td><td colspan="2">No exams scheduled</td></tr>`;
+            else db.exams.forEach(ex => rows += `<tr><td>Exam</td><td>${ex.date}</td><td>${ex.name}</td></tr>`);
             
-            const b = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'}); 
-            const a = document.createElement('a'); 
-            a.href = URL.createObjectURL(b); 
-            a.download = 'TheLedger_Export.csv'; 
-            a.click(); 
+            let hasTasks = false;
+            Object.keys(db.tasks).forEach(d => {
+                db.tasks[d].filter(t=>!t.done).forEach(t => {
+                    hasTasks = true;
+                    rows += `<tr><td>Task</td><td>${d}</td><td>${t.text}</td></tr>`;
+                });
+            });
+            if(!hasTasks) rows += `<tr><td>Task</td><td colspan="2">No pending tasks</td></tr>`;
+            
+            rows += `</table></body></html>`;
+            
+            const b = new Blob(['\ufeff', rows], {type: 'application/vnd.ms-excel'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = 'TheLedger_Export.xls';
+            a.click();
         }
         
         renderCalendar(); showScreen('tasks');
