@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Ledger | Smart Hub</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
     <style>
         body { background-color: #f8fafc; color: #1e293b; font-family: sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .bg-card { background-color: white; border: 1px solid #e2e8f0; }
@@ -98,7 +102,7 @@
                 <p class="text-[10px] text-slate-500 font-medium italic mt-1">"Smart scheduling starts here"</p>
             </div>
 
-            <button onclick="downloadReadableData()" class="w-full bg-slate-900 text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest mt-2">📥 Download List Document</button>
+            <button onclick="downloadReadableData()" class="w-full bg-slate-900 text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest mt-2">📥 Download Excel Sheet</button>
         </div>
 
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-1 shadow-lg z-50">
@@ -224,11 +228,31 @@
         function delEvent(i) { db.events[selDate].splice(i,1); save(); }
         function delDiary() { delete db.diaries[selDate]; save(); }
         function toggleTask(i) { db.tasks[selDate][i].done = !db.tasks[selDate][i].done; save(); }
-        function renderIntel() { const today=new Date().toISOString().split('T')[0]; let tc=0; Object.values(db.tasks).forEach(d=>d.forEach(t=>{if(!t.done)tc++;})); document.getElementById('statTasks').innerText=tc; document.getElementById('statExams').innerText=db.exams.filter(ex=>ex.date>=today).length; let ec=0; Object.values(db.events).forEach(d=>ec+=d.length); document.getElementById('statEvents').innerText=ec; document.getElementById('statDiaries').innerText=Object.keys(db.diaries).length; }
-        function showIntelDetail(type) { const list = document.getElementById('intelDetailList'); list.innerHTML = `<h4 class="text-[10px] font-black uppercase text-slate-500 mb-2">${type} List</h4>`; if(type==='tasks') Object.keys(db.tasks).forEach(d=>db.tasks[d].forEach(t=>list.innerHTML += `<div class="bg-white p-2 text-xs border rounded mb-1 flex justify-between"><span>${t.text}</span><span class="opacity-40">${d}</span></div>`)); else if(type==='exams') db.exams.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex=>list.innerHTML += `<div class="bg-red-50 p-2 text-xs border border-red-100 rounded mb-1 flex justify-between"><span>${ex.name}</span><span class="font-bold">${ex.date}</span></div>`); else if(type==='events') Object.keys(db.events).forEach(d=>db.events[d].forEach(e=>list.innerHTML += `<div class="bg-green-50 p-2 text-xs border border-green-100 rounded mb-1 flex justify-between"><span>${e}</span><span class="opacity-40">${d}</span></div>`)); else if(type==='diary') Object.keys(db.diaries).forEach(d=>list.innerHTML += `<div class="bg-yellow-50 p-2 text-xs border border-yellow-100 rounded mb-1"><b>${d}:</b> ${db.diaries[d]}</div>`); }
+        
+        function renderIntel() { 
+            const today=new Date().toISOString().split('T')[0]; 
+            let tc=0; 
+            Object.values(db.tasks).forEach(d=>d.forEach(t=>{if(!t.done)tc++;})); 
+            document.getElementById('statTasks').innerText=tc; 
+            document.getElementById('statExams').innerText=db.exams.filter(ex=>ex.date>=today).length; 
+            let ec=0; 
+            Object.values(db.events).forEach(d=>ec+=d.length); 
+            document.getElementById('statEvents').innerText=ec; 
+            document.getElementById('statDiaries').innerText=Object.keys(db.diaries).length; 
+        }
+        
+        function showIntelDetail(type) { 
+            const list = document.getElementById('intelDetailList'); 
+            list.innerHTML = `<h4 class="text-[10px] font-black uppercase text-slate-500 mb-2">${type} List</h4>`; 
+            if(type==='tasks') Object.keys(db.tasks).forEach(d=>db.tasks[d].forEach(t=>list.innerHTML += `<div class="bg-white p-2 text-xs border rounded mb-1 flex justify-between"><span>${t.text}</span><span class="opacity-40">${d}</span></div>`)); 
+            else if(type==='exams') db.exams.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex=>list.innerHTML += `<div class="bg-red-50 p-2 text-xs border border-red-100 rounded mb-1 flex justify-between"><span>${ex.name}</span><span class="font-bold">${ex.date}</span></div>`); 
+            else if(type==='events') Object.keys(db.events).forEach(d=>db.events[d].forEach(e=>list.innerHTML += `<div class="bg-green-50 p-2 text-xs border border-green-100 rounded mb-1 flex justify-between"><span>${e}</span><span class="opacity-40">${d}</span></div>`)); 
+            else if(type==='diary') Object.keys(db.diaries).forEach(d=>list.innerHTML += `<div class="bg-yellow-50 p-2 text-xs border border-yellow-100 rounded mb-1"><b>${d}:</b> ${db.diaries[d]}</div>`); 
+        }
         
         function pinItem(t,c,d) { db.pin={type:t, content:c, date:d}; save(); }
         function clearPin() { db.pin=null; save(); }
+        
         function renderPin() { 
             const c=document.getElementById('pinContainer'); 
             if(db.pin){ 
@@ -247,7 +271,35 @@
 
         function changeMonth(o){ curDate.setMonth(curDate.getMonth()+o); renderCalendar(); }
         
-        function downloadReadableData() { let examRows = db.exams.map(ex => `<tr><td>${ex.date}</td><td>${ex.name}</td></tr>`).join(""); let taskRows = Object.keys(db.tasks).map(d => db.tasks[d].filter(t=>!t.done).map(t => `<tr><td>${d}</td><td>${t.text}</td></tr>`).join("")).join(""); let htmlDoc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>The Ledger Export</title><style>body { font-family: Arial, sans-serif; background: white; color: black; padding: 20px; } h1 { text-align: center; color: #1e293b; text-transform: uppercase; font-size: 20px; } h2 { color: #3b82f6; font-size: 16px; margin-top: 20px; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; } table { border-collapse: collapse; width: 100%; margin-bottom: 20px; } th, td { border: 1px solid #000; padding: 10px; text-align: left; font-size: 14px; } th { background-color: #f1f5f9; font-weight: bold; }</style></head><body><h1>The Ledger: Academic Mission List</h1><h2>Exams Timetable</h2><table><tr><th width="30%">Date</th><th>Exam Name</th></tr>${examRows || '<tr><td colspan="2">No exams scheduled</td></tr>'}</table><h2>Pending Tasks</h2><table><tr><th width="30%">Date</th><th>Task Details</th></tr>${taskRows || '<tr><td colspan="2">No pending tasks</td></tr>'}</table></body></html>`; const b = new Blob(['\ufeff', htmlDoc], {type:'application/msword'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'TheLedger_Document.doc'; a.click(); }
+        // --- NEW EXCEL EXPORT FUNCTION --- //
+        function downloadReadableData() { 
+            // 1. Prepare Exams Data
+            let examData = [["Date", "Exam Name"]];
+            let sortedExams = [...db.exams].sort((a,b) => new Date(a.date) - new Date(b.date));
+            sortedExams.forEach(ex => examData.push([ex.date, ex.name]));
+            if(examData.length === 1) examData.push(["-", "No exams scheduled"]);
+
+            // 2. Prepare Tasks Data
+            let taskData = [["Date", "Task Details"]];
+            Object.keys(db.tasks).forEach(d => {
+                db.tasks[d].filter(t => !t.done).forEach(t => {
+                    taskData.push([d, t.text]);
+                });
+            });
+            if(taskData.length === 1) taskData.push(["-", "No pending tasks"]);
+
+            // 3. Create Workbook and Sheets
+            let wb = XLSX.utils.book_new();
+            let wsExams = XLSX.utils.aoa_to_sheet(examData);
+            let wsTasks = XLSX.utils.aoa_to_sheet(taskData);
+
+            // 4. Append Sheets
+            XLSX.utils.book_append_sheet(wb, wsExams, "Upcoming Exams");
+            XLSX.utils.book_append_sheet(wb, wsTasks, "Pending Tasks");
+
+            // 5. Trigger File Download
+            XLSX.writeFile(wb, "TheLedger_Export.xlsx"); 
+        }
         
         renderCalendar(); showScreen('tasks');
     </script>
